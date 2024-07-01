@@ -86,4 +86,30 @@ from menu inner join sales on sales.product_id = menu.product_id
 group by menu.product_name 
 order by most_purchased_item DESC
 ---Task 5: Which item was the most popular for each customer?
-
+WITH MOST_POPULAR AS (
+	SELECT 
+	sales.customer_id, menu.product_name, COUNT (menu.product_id) AS order_count,
+	DENSE_RANK () OVER (
+		PARTITION BY sales.customer_id 
+		Order BY COUNT (sales.customer_id) DESC )  AS rank 
+		from sales join menu on menu.product_id = sales.product_id
+		group by sales.customer_id, menu.product_name
+)
+select customer_id,product_name, order_count 
+from MOST_POPULAR
+WHERE rank = 1;
+----Task 6: Sửa bài: Which item was purchased first by the customer after the became a member?
+WITH JOINED_AS_MEMBER AS(
+	SELECT 
+		members.customer_id, sales.product_id,
+		ROW_NUMBER() OVER (
+			PARTITION BY members.customer_id
+			ORDER BY sales.order_date) AS row_num
+		FROM members inner join sales on members.customer_id = sales.customer_id 
+							and sales.order_date > members.join_date
+)
+	SELECT customer_id , product_name 
+	FROM JOINED_AS_MEMBER  INNER JOIN menu on JOINED_AS_MEMBER.product_id = menu.product_id
+	WHERE row_num = 1
+	ORDER BY customer_id ASC 
+-----Task 7: Which item was purchased just before the customer became a member?
