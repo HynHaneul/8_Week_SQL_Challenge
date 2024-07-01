@@ -113,3 +113,39 @@ WITH JOINED_AS_MEMBER AS(
 	WHERE row_num = 1
 	ORDER BY customer_id ASC 
 -----Task 7: Which item was purchased just before the customer became a member?
+WITH the_purchased_before as (
+	SELECT  sales.product_id,
+			members.customer_id,
+			ROW_NUMBER () OVER(
+				PARTITION BY members.customer_id 
+				ORDER BY sales.order_date DESC) as rank
+	FROM sales inner join members on sales.customer_id = members.customer_id
+					and sales.order_date < members.join_date
+)
+select p_member.customer_id , menu.product_name
+FROM the_purchased_before as p_member INNER JOIN menu on p_member.product_id = menu.product_id
+WHERE rank = 1
+order by customer_id ASC;
+-----Task 8: What is the total items amount spent for each member before they became a member?
+WITH Total_item as (
+	select members.customer_id, SUM(sales.product_id) AS total_product,
+			 DENSE_RANK() OVER(
+			 PARTITION BY members.customer_id 
+			 ORDER BY  sales.order_date DESC) as rank 
+	from members inner join sales on members.customer_id = sales.customer_id
+					and sales.order_date < members.join_date
+)
+select total_product, customer_id
+from Total_item  
+where rank = 1
+order by customer_id ASC;
+-----Task 8: Sửa bài:sum của doanh số-> sum(menu.price) as total_sales, 
+--count(sales.product) as total_items
+SELECT sales.customer_id,
+		SUM(menu.price) as total_sales, 
+		COUNT(sales.product_id) as total_items
+FROM members inner join sales on members.customer_id = sales.customer_id 
+		and members.join_date > sales.order_date
+		inner join menu on sales.product_id = menu.product_id 
+GROUP BY sales.customer_id
+ORDER BY sales.customer_id;
