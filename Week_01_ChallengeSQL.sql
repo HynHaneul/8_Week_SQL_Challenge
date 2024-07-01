@@ -149,3 +149,42 @@ FROM members inner join sales on members.customer_id = sales.customer_id
 		inner join menu on sales.product_id = menu.product_id 
 GROUP BY sales.customer_id
 ORDER BY sales.customer_id;
+---Task 9: if each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+WITH points_cte AS (
+	SELECT 
+		menu.product_id, 
+		CASE 
+			WHEN product_id = 1 THEN price * 20
+			ELSE price * 10 END AS points
+	FROM menu
+)
+SELECT 
+	sales.customer_id,
+	SUM( points_cte.points) AS total_points
+FROM sales	inner join points_cte on sales.product_id = points_cte.product_id
+GROUP BY sales.customer_id
+ORDER BY sales.customer_id;
+--Task 10: in the first week after a customer joins the program(including their join date) 
+--they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of january?
+WITH dates_cte AS (
+	SELECT 
+		EOMONTH(DATEADD(month, 1, '2021-01-31')) AS last_date, 
+		members.customer_id, 
+		members.join_date, 
+		DATEADD(day, 6, members.join_date) AS valid_date 
+	FROM members
+)
+SELECT 
+	sales.customer_id,
+		SUM(
+		CASE
+			WHEN menu.product_name = 'sushi' THEN 2 * 10 * menu.price
+			WHEN sales.order_date BETWEEN dates.join_date and dates.valid_date THEN 2 * 10 * menu.price
+			ELSE 10 * menu.price 
+		END 
+	) AS points
+FROM sales inner join dates_cte AS dates on sales.customer_id = dates.customer_id
+			AND dates.join_date <= sales.order_date
+			AND sales.order_date <= dates.last_date
+			inner join menu on sales.product_id = menu.product_id
+			GROUP BY sales.customer_id;
