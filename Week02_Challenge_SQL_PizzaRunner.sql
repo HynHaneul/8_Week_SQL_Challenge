@@ -1,4 +1,5 @@
-USE master
+﻿USE MASTER
+GO
 CREATE DATABASE PIZZA_RUNNER;
 GO
 USE PIZZA_RUNNER;
@@ -111,7 +112,7 @@ VALUES
   (4, '4, 10'),
   (5, '4, 9');
 SELECT * FROM customer_orders;
-SELECT * FROM customer_orders;
+SELECT * FROM runner_orders;
 --------------------------------------A. PIZZA METRICS-------------------------------------
 --TASK 01: HOW MANY PIZZAS WERE ORDERED?
 SELECT COUNT(order_id) AS PIZZA_ORDER_COUNT
@@ -133,3 +134,21 @@ FROM pizza_names join customer_orders on pizza_names.pizza_id = customer_orders.
 				join runner_orders on customer_orders.order_id = runner_orders.order_id
 WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled'
 GROUP BY runner_orders.order_id, pizza_names.pizza_name
+--TASK 05: HOW MANY VEGETARIAN AND MEATLOVERS WERE ORDERED BY EACH CUSTOMER ? 
+--(count name của vegetarian and meatlovers)
+SELECT customer_orders.order_id, customer_orders.customer_id,pizza_names.pizza_name,
+		COUNT(pizza_names.pizza_name) AS order_by_customer
+FROM pizza_names inner join customer_orders on pizza_names.pizza_id = customer_orders.pizza_id
+WHERE pizza_names.pizza_name IN ('Meatlovers' , 'Vegetarian')
+GROUP BY customer_orders.order_id, customer_orders.customer_id,pizza_names.pizza_name
+--TASK 06: What was the maximum number of pizzas delivered in a single order?
+SELECT MAX(pizza_count) AS max_pizza_order
+FROM (
+	SELECT COUNT (customer_orders.pizza_id) AS pizza_count, customer_orders.order_id
+	FROM customer_orders INNER JOIN runner_orders ON customer_orders.order_id = runner_orders.order_id
+	WHERE runner_orders.cancellation != 'null' and runner_orders.cancellation != 'Customer Cancelled'
+	GROUP BY customer_orders.order_id
+) AS a
+--TASK 07: FOR EACH CUSTOMER, HOW MANY DELIVERED PIZZAS HAD AT LEATS 1 CHANGE AND HOW  MANY HAD NO CHANGES?
+SELECT 
+
