@@ -111,3 +111,25 @@ VALUES
   (4, '4, 10'),
   (5, '4, 9');
 SELECT * FROM customer_orders;
+SELECT * FROM customer_orders;
+--------------------------------------A. PIZZA METRICS-------------------------------------
+--TASK 01: HOW MANY PIZZAS WERE ORDERED?
+SELECT COUNT(order_id) AS PIZZA_ORDER_COUNT
+FROM customer_orders
+--TASK 02: HOW MANY UNIQUE CUSTOMER ORDERS WERE MADE?
+SELECT COUNT (DISTINCT order_id)  AS unique_customer_order 
+FROM customer_orders
+--TASK 03: HOW MANY SUCCESSFULL ORDERS WERE DELIVERED BY EACH RUNNER ?
+SELECT runner_id, 
+		COUNT (runner_orders.order_id) AS order_successfull
+FROM runner_orders
+WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled' 
+GROUP BY runner_id
+-- TASK 04: HOW MANY OF EACH TYPE OF PIZZA WAS DELIVERED?
+SELECT pizza_names.pizza_name,
+	   runner_orders.order_id, 
+	   COUNT (customer_orders.pizza_id) AS pizza_delivered
+FROM pizza_names join customer_orders on pizza_names.pizza_id = customer_orders.pizza_id 
+				join runner_orders on customer_orders.order_id = runner_orders.order_id
+WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled'
+GROUP BY runner_orders.order_id, pizza_names.pizza_name
