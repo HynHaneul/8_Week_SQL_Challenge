@@ -111,44 +111,95 @@ VALUES
   (3, '8'),
   (4, '4, 10'),
   (5, '4, 9');
-SELECT * FROM customer_orders;
-SELECT * FROM runner_orders;
+
 --------------------------------------A. PIZZA METRICS-------------------------------------
 --TASK 01: HOW MANY PIZZAS WERE ORDERED?
 SELECT COUNT(order_id) AS PIZZA_ORDER_COUNT
-FROM customer_orders
+FROM customer_orders co
+
 --TASK 02: HOW MANY UNIQUE CUSTOMER ORDERS WERE MADE?
 SELECT COUNT (DISTINCT order_id)  AS unique_customer_order 
-FROM customer_orders
+FROM customer_orders co
+
 --TASK 03: HOW MANY SUCCESSFULL ORDERS WERE DELIVERED BY EACH RUNNER ?
 SELECT runner_id, 
-		COUNT (runner_orders.order_id) AS order_successfull
-FROM runner_orders
+		COUNT (ro.order_id) AS order_successfull
+FROM runner_orders ro
 WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled' 
 GROUP BY runner_id
+
 -- TASK 04: HOW MANY OF EACH TYPE OF PIZZA WAS DELIVERED?
-SELECT pizza_names.pizza_name,
-	   runner_orders.order_id, 
-	   COUNT (customer_orders.pizza_id) AS pizza_delivered
-FROM pizza_names join customer_orders on pizza_names.pizza_id = customer_orders.pizza_id 
-				join runner_orders on customer_orders.order_id = runner_orders.order_id
+SELECT pn.pizza_name,
+	   ro.order_id, 
+	   COUNT (co.pizza_id) AS pizza_delivered
+FROM pizza_names pn join customer_orders co on pn.pizza_id = co.pizza_id 
+				join runner_orders ro on co.order_id = ro.order_id
 WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled'
-GROUP BY runner_orders.order_id, pizza_names.pizza_name
+GROUP BY ro.order_id, pn.pizza_name
+
 --TASK 05: HOW MANY VEGETARIAN AND MEATLOVERS WERE ORDERED BY EACH CUSTOMER ? 
 --(count name của vegetarian and meatlovers)
-SELECT customer_orders.order_id, customer_orders.customer_id,pizza_names.pizza_name,
-		COUNT(pizza_names.pizza_name) AS order_by_customer
-FROM pizza_names inner join customer_orders on pizza_names.pizza_id = customer_orders.pizza_id
-WHERE pizza_names.pizza_name IN ('Meatlovers' , 'Vegetarian')
-GROUP BY customer_orders.order_id, customer_orders.customer_id,pizza_names.pizza_name
---TASK 06: What was the maximum number of pizzas delivered in a single order?
+SELECT co.order_id, co.customer_id,pn.pizza_name,
+		COUNT(pn.pizza_name) AS order_by_customer
+FROM pizza_names pn inner join customer_orders co on pn.pizza_id = co.pizza_id
+WHERE pn.pizza_name IN ('Meatlovers' , 'Vegetarian')
+GROUP BY co.order_id, co.customer_id,pn.pizza_name
+
+--TASK 06: WHAT WAS THE MAXIMUM NUMBER OF PIZZAS DELIVERED IN A SNGLE ORDER?
 SELECT MAX(pizza_count) AS max_pizza_order
 FROM (
-	SELECT COUNT (customer_orders.pizza_id) AS pizza_count, customer_orders.order_id
-	FROM customer_orders INNER JOIN runner_orders ON customer_orders.order_id = runner_orders.order_id
-	WHERE runner_orders.cancellation != 'null' and runner_orders.cancellation != 'Customer Cancelled'
-	GROUP BY customer_orders.order_id
+	SELECT COUNT (co.pizza_id) AS pizza_count, co.order_id
+	FROM customer_orders co INNER JOIN runner_orders ro ON co.order_id = ro.order_id
+	WHERE ro.cancellation != 'null' and ro.cancellation != 'Customer Cancelled'
+	GROUP BY co.order_id
 ) AS a
---TASK 07: FOR EACH CUSTOMER, HOW MANY DELIVERED PIZZAS HAD AT LEATS 1 CHANGE AND HOW  MANY HAD NO CHANGES?
-SELECT 
 
+--TASK 07: FOR EACH CUSTOMER, HOW MANY DELIVERED PIZZAS HAD AT LEATS 1 CHANGE AND HOW  MANY HAD NO CHANGES?
+--SELECT customer_orders.customer_id, COUNT (customer_orders.pizza_id) AS pizza_count, runner_orders.order_id
+--FROM customer_orders inner join  runner_orders ON customer_orders.order_id = runner_orders.order_id
+--GROUP BY customer_orders.customer_id, runner_orders.order_id
+-------------SỬA TASK 07: --------------
+WITH cte AS(
+	SELECT
+		co.customer_id,
+		CASE 
+			WHEN co.exclusions IS NOT NULL or co.extras IS NOT NULL THEN 1 
+			ELSE 0
+		END AS has_change
+	FROM customer_orders co inner join runner_orders ro ON co.order_id = ro.order_id
+	WHERE ro.cancellation IS NULL OR ro.cancellation <> 'Customer Cancelled'
+	-- có sự thay dổi đặt điều kiện case when chỉ lấy những đơn hàng đã được giao
+)
+SELECT customer_id,
+		SUM( 
+		CASE 
+			WHEN has_change = 1 THEN 1 
+			ELSE 0
+		END ) AS delivered_pizzas_with_change,
+		SUM(
+		CASE
+			WHEN has_change = 0 THEN 1
+			ELSE 0
+		END  ) AS deliveried_pizzas_without_change
+		--- SAU KHI CHIA TÍNH TÔNG HAS_CHANGE AND NOT HAS_CHANGE
+FROM cte 
+GROUP BY CTE.customer_id
+
+--TASK 08: HOW MANY PIZZAS WERE DELIVERED THAT HAD BOTH EXCLUSIONS AND EXTRAS? 
+SELECT 
+	SUM(
+	CASE
+		WHEN co.exclusions IS NOT NULL AND co.extras IS NOT NULL THEN 1
+		ELSE 0
+	END )AS pizzas_count_exclusion_extras
+FROM customer_orders co INNER JOIN runner_orders ro ON co.order_id = ro.order_id
+WHERE ro.cancellation IS NULL OR  ro.cancellation <> 'Customer Cancled'
+
+--TASK 09: WHAT WAS THE TOTAL VOLUME OF PIZZAS ORDERED FOR EACH HOUR OF THE DAY?
+SELECT DATEPART(HOUR, CAST([order_date] AS datetime)) AS hour_of_day,
+		SUM (co.pizza_id) AS pizzas_total
+FROM customer_orders co  
+GROUP BY DATEPART(HOUR, CAST([order_date] AS datetime))
+ORDER BY hour_of_day
+
+--TASK 10: WHAT WAS THE VOLUME OF ORDERS FOR EACH DAY OF THE WEEK?
