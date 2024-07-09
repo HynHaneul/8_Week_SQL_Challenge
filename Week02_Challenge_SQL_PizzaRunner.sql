@@ -256,19 +256,20 @@ GROUP BY co.customer_id;
 SELECT * FROM customer_orders
 
 --TASK 05: WHAT WAS THE DIFFERENCE BETWEEN THE LONGEST AND SHORTEST DELIVERY TIMES FOR ALL ORDERS?
-SELECT MAX(CAST(duration AS DECIMAL(18, 2))) - MIN(CAST(duration AS DECIMAL(18, 2))) AS delivery_time_difference
-FROM runner_orders2
-WHERE duration NOT LIKE ' ';
+--SELECT MAX(CAST(duration AS DECIMAL(18, 2))) - MIN(CAST(duration AS DECIMAL(18, 2))) AS delivery_time_difference
+--FROM runner_orders2
+--WHERE duration NOT LIKE ' ';
 --note: không có cách giải
 
 --TASK 06: WHAT WAS THE AVERAGE SPEED FOR EACH RUNNER FOR EACH DELIVERY AND DO YOU NOTICE ANY TREND FOR THESE VALUES?
 SELECT ro.runner_id, ro.order_id , AVG(ro.duration) AS runner_delivery 
 FROM runner_orders ro 
 GROUP BY runner_id, order_id;
+
 --TASK 07: WHAT IS THE SUCCESSFUL DELIVERY PERCENTAGE FOR EACH RUNNER?
-SELECT count (runner_orders.order_id) , 
-FROM runner_orders ro
-WHERE ro.cancellation <> 'yes' or cancellation <> 'Customer Cancelled' 
+--SELECT count (runner_orders.order_id) , 
+--FROM runner_orders ro
+--WHERE ro.cancellation <> 'yes' or cancellation <> 'Customer Cancelled' 
 ----------------------------SỬA BÀI TASK 07:---------------------------
 SELECT ro.runner_id,ROUND(100, SUM(
 	CASE 
@@ -277,3 +278,20 @@ SELECT ro.runner_id,ROUND(100, SUM(
 
 FROM runner_orders ro
 GROUP BY ro.runner_id
+
+--------------------------------------C. INGREDIENT OPTIMISATION -------------------------------------
+--TASK 01: WHAT ARE THE STANDARD INGREDIENTS FOR EACH PIZZA?
+SELECT pr.toppings, pn.pizza_name,
+FROM customer_orders co join pizza_names pn on co.pizza_id = pn.pizza_id JOIN 
+	pizza_toppings pt on pt.topping_id = co.
+--TASK 02: WHAT WAS THE MOST COMMONLY ADDED EXTRA?
+--TASK 03: WHAT WAS THE MOST COMMON EXCLUSION?
+--TASK 04: GENERATE AN ORDER ITEM FOR EACH RECORD IN THE CUSTOMER_ORDERS TABLE IN THE FORMAT OF ONE OF THE FOLLOWING?
+--TASK 05: GENERATE AN ALPHABETICALLY ORDERED COMMA SEPARATED INGREDIENT LIST FOR EACH PIZZA ORDER FROM THE CUSTOMER_ORDERS
+-- TABLE AND ADD A 2X IN FRONT OF ANY RELEVANT INGREDIENTS
+--TASK 06: FOR EXAMPLE:"MEAT LOVERS: 2XBACON, BEEF, ..., SALAMI"
+--TASK 07: WHAT IS THE TOTAL QUANTITY OF EACH INGREDIENT USED IN ALL DELIVERED PIZZAS SORTED BY MOST FREQUENT FIRST?
+
+
+
+
