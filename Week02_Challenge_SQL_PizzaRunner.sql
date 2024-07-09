@@ -11,21 +11,21 @@ CREATE TABLE runners (
 GO
 CREATE TABLE pizza_names (
 	"pizza_id" INTEGER PRIMARY KEY,
-	"pizza_name" TEXT
+	"pizza_name" VARCHAR(40)
 );
 GO
 CREATE TABlE pizza_toppings (
 	"topping_id" INTEGER PRIMARY KEY ,
-	"topping_name" TEXT
+	"topping_name" VARCHAR(40)
 );
 GO
 CREATE TABLE customer_orders(
 	"order_id" INTEGER PRIMARY KEY,
 	"customer_id" INTEGER,
 	"pizza_id" INTEGER,
-	"exclusions" VARCHAR(4),
-	"extras" VARCHAR(4),
-	"order_date" DATE,
+	"exclusions" VARCHAR(40),
+	"extras" VARCHAR(40),
+	"order_date" DATETIME,
 	CONSTRAINT fk_customer_order_pizza_id FOREIGN KEY (pizza_id) REFERENCES pizza_names(pizza_id)
 );
 GO
@@ -42,7 +42,7 @@ CREATE TABLE runner_orders (
 GO
 CREATE TABLE pizza_recipes (
 	"pizza_id" INTEGER PRIMARY KEY,
-	"toppings" TEXT,
+	"toppings" VARCHAR(40),
 	CONSTRAINT FK_pizza_recipes_pizza_id FOREIGN KEY (pizza_id) REFERENCES pizza_names (pizza_id)
 );
 GO
@@ -76,18 +76,18 @@ VALUES
 GO
 INSERT INTO customer_orders (order_id, customer_id, pizza_id, exclusions, extras, order_date)
 VALUES
-  (1, 101, 1, '', '', '2020-01-01 18:05:02'),
-  (2, 101, 1, '', '', '2020-01-01 19:00:52'),
-  (3, 102, 1, '', '', '2020-01-02 23:51:23'),
-  (4, 102, 3, '', '', '2020-01-04 13:23:46'),
-  (5, 103, 2, '', NULL, '2020-01-08 21:00:29'),
-  (6, 103, 2, '', '', '2020-01-08 21:03:13'),
-  (7, 104, 2, '', NULL, '2020-01-08 21:20:29'),
-  (8, 104, 1, '', '', '2020-01-09 23:54:33'),
-  (9, 105, 3, '', '', '2020-01-10 11:22:59'),
-  (10, 105, 2, '', '', '2020-01-11 18:34:49'),
-  (11, 102, 1, '4', '', '2020-01-11 18:34:49'),
-  (12, 104, 2, NULL, '1', '2020-01-11 18:34:49');
+  (1, 101, 1, 'None', 'None', '2020-01-01 18:05:02'),
+  (2, 101, 5, 'Onions', 'None', '2020-01-01 19:00:52'),
+  (3, 102, 4, 'Onions', 'None', '2020-01-02 23:51:23'),
+  (4, 102, 3, 'Pineapple', 'None', '2020-01-04 13:23:46'),
+  (5, 103, 2, 'Onions','None' , '2020-01-08 21:00:29'),
+  (6, 103, 2, 'Pineapple', 'Extra Cheese', '2020-01-08 21:03:13'),
+  (7, 104, 2, 'Onions', 'Extra Cheese', '2020-01-08 21:20:29'),
+  (8, 104, 4, 'Pineapple', 'Extra Cheese', '2020-01-09 23:54:33'),
+  (9, 105, 5, 'Pineapple', '', '2020-01-10 11:22:59'),
+  (10, 105, 5, 'Ham', 'None', '2020-01-11 18:34:49'),
+  (11, 102, 5, 'Ham', 'Extra Cheese', '2020-01-11 18:34:49'),
+  (12, 104, 5, 'Ham', 'None', '2020-01-11 18:34:49');
 GO
 INSERT INTO runner_orders (order_id, runner_id, pickup_time, distance, cancellation)
 VALUES
@@ -103,6 +103,7 @@ VALUES
   (10, 1, '2020-01-11 19:10:54', '10km', 'null'),
   (11, 2, '2020-01-11 19:30:45', '25km', 'null'),
   (12, 2, '2020-01-11 20:57:03', '25km', 'null');
+  
 GO
 INSERT INTO pizza_recipes (pizza_id, toppings)
 VALUES
@@ -111,7 +112,8 @@ VALUES
   (3, '8'),
   (4, '4, 10'),
   (5, '4, 9');
-
+GO
+SELECT * FROM customer_orders
 --------------------------------------A. PIZZA METRICS-------------------------------------
 --TASK 01: HOW MANY PIZZAS WERE ORDERED?
 SELECT COUNT(order_id) AS PIZZA_ORDER_COUNT
@@ -197,9 +199,23 @@ WHERE ro.cancellation IS NULL OR  ro.cancellation <> 'Customer Cancled'
 
 --TASK 09: WHAT WAS THE TOTAL VOLUME OF PIZZAS ORDERED FOR EACH HOUR OF THE DAY?
 SELECT DATEPART(HOUR, CAST([order_date] AS datetime)) AS hour_of_day,
-		SUM (co.pizza_id) AS pizzas_total
+		count (co.order_id) AS pizzas_total
 FROM customer_orders co  
 GROUP BY DATEPART(HOUR, CAST([order_date] AS datetime))
-ORDER BY hour_of_day
+
+SELECT * FROM customer_orders
 
 --TASK 10: WHAT WAS THE VOLUME OF ORDERS FOR EACH DAY OF THE WEEK?
+SELECT co.order_id ,DATEPART (DAY, CAST([order_date] AS datetime)) AS day_of_week
+FROM customer_orders co
+--GROUP BY co.order_id 
+
+--------------------------------------B. RUNNER AND CUSTOMER EXPERIENCE -------------------------------------
+--TASK 01: HOW MANY RUNNERS SIGNED UP FOR EACH 1 WEEK PERIOD?
+
+--TASK 02: WHAT WAS THE AVERAGE TIME IN MINUTES IT TOOK FOR EACH RUNNER TO ARRIVE AT THE PIZZA RUNNER HQ TO PICKUP THE ORDER?
+--TASK 03: IS THERE ANY RELATIONSHIP BETWEEN THE NUMBER OF PIZZAS AND HOW LONG THE ORDER TAKES TO PREPARE?
+--TASK 04: IS THERE ANY RELATIONSHIP BETWEEN THE NUMBER OF PIZZAS AND HOW LONG THE ORDER TAKES TO PREPARE?
+--TASK 05: WHAT WAS THE DIFFERENCE BETWEEN THE LONGEST AND SHORTEST DELIVERY TIMES FOR ALL ORDERS?
+--TASK 06: WHAT WAS THE AVERAGE SPEED FOR EACH RUNNER FOR EACH DELIVERY AND DO YOU NOTICE ANY TREND FOR THESE VALUES?
+--TASK 07: WHAT IS THE SUCCESSFUL DELIVERY PERCENTAGE FOR EACH RUNNER?
