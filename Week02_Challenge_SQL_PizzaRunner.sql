@@ -33,7 +33,8 @@ CREATE TABLE runner_orders (
 	"order_id" INTEGER,
 	"runner_id" INTEGER,
 	"pickup_time" VARCHAR(19),
-	"distance"	VARCHAR(10),
+	"distance"	DECIMAL, --số thập phân 
+	"duration" INTEGER,
 	"cancellation" VARCHAR(23),
 	PRIMARY KEY (order_id,runner_id),
 	CONSTRAINT FK_runner_orders_order_id FOREIGN KEY (order_id) REFERENCES customer_orders(order_id),
@@ -89,20 +90,20 @@ VALUES
   (11, 102, 5, 'Ham', 'Extra Cheese', '2020-01-11 18:34:49'),
   (12, 104, 5, 'Ham', 'None', '2020-01-11 18:34:49');
 GO
-INSERT INTO runner_orders (order_id, runner_id, pickup_time, distance, cancellation)
+INSERT INTO runner_orders (order_id, runner_id, pickup_time, distance, duration, cancellation)
 VALUES
-  (1, 1, '2020-01-01 18:15:34', '20km', ''),
-  (2, 1, '2020-01-01 19:10:54', '20km', ''),
-  (3, 1, '2020-01-02 00:12:37', '13.4km', ''),
-  (4, 2, '2020-01-04 13:53:03', '23.4km', ''),
-  (5, 3, '2020-01-08 21:10:57', '10km', ''),
-  (6, 3, NULL, NULL, 'Customer Cancelled'),
-  (7, 2, '2020-01-08 21:30:45', '25km', 'null'),
-  (8, 2, '2020-01-10 00:15:02', '23.4km', 'null'),
-  (9, 1, '2020-01-11 18:50:20', '10km', 'null'),
-  (10, 1, '2020-01-11 19:10:54', '10km', 'null'),
-  (11, 2, '2020-01-11 19:30:45', '25km', 'null'),
-  (12, 2, '2020-01-11 20:57:03', '25km', 'null');
+  (1, 1, '2020-01-01 18:15:34', '20','50', 'no'),
+  (2, 1, '2020-01-01 19:10:54', '20','15', 'no'),
+  (3, 1, '2020-01-02 00:12:37', '13.4','20', 'no'),
+  (4, 2, '2020-01-04 13:53:03', '23.4','5', 'no'),
+  (5, 3, '2020-01-08 21:10:57', '10','25', 'no'),
+  (6, 3, NULL, NULL,'20', 'Customer Cancelled'),
+  (7, 2, '2020-01-08 21:30:45', '25','40', 'yes'),
+  (8, 2, '2020-01-10 00:15:02', '23.4','50', 'no'),
+  (9, 1, '2020-01-11 18:50:20', '10','30', 'no'),
+  (10, 1, '2020-01-11 19:10:54', '10','15', 'yes'),
+  (11, 2, '2020-01-11 19:30:45', '25','35', 'no'),
+  (12, 2, '2020-01-11 20:57:03', '25','20', 'no');
   
 GO
 INSERT INTO pizza_recipes (pizza_id, toppings)
@@ -127,7 +128,7 @@ FROM customer_orders co
 SELECT runner_id, 
 		COUNT (ro.order_id) AS order_successfull
 FROM runner_orders ro
-WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled' 
+WHERE cancellation <> 'yes' or cancellation  <>  'Customer Cancelled' 
 GROUP BY runner_id
 
 -- TASK 04: HOW MANY OF EACH TYPE OF PIZZA WAS DELIVERED?
@@ -136,7 +137,7 @@ SELECT pn.pizza_name,
 	   COUNT (co.pizza_id) AS pizza_delivered
 FROM pizza_names pn join customer_orders co on pn.pizza_id = co.pizza_id 
 				join runner_orders ro on co.order_id = ro.order_id
-WHERE cancellation != 'null' and cancellation  !=  'Customer Cancelled'
+WHERE cancellation <> 'yes' or cancellation  <>  'Customer Cancelled'
 GROUP BY ro.order_id, pn.pizza_name
 
 --TASK 05: HOW MANY VEGETARIAN AND MEATLOVERS WERE ORDERED BY EACH CUSTOMER ? 
@@ -152,7 +153,7 @@ SELECT MAX(pizza_count) AS max_pizza_order
 FROM (
 	SELECT COUNT (co.pizza_id) AS pizza_count, co.order_id
 	FROM customer_orders co INNER JOIN runner_orders ro ON co.order_id = ro.order_id
-	WHERE ro.cancellation != 'null' and ro.cancellation != 'Customer Cancelled'
+	WHERE ro.cancellation <> 'yes' or ro.cancellation <> 'Customer Cancelled'
 	GROUP BY co.order_id
 ) AS a
 
@@ -169,7 +170,7 @@ WITH cte AS(
 			ELSE 0
 		END AS has_change
 	FROM customer_orders co inner join runner_orders ro ON co.order_id = ro.order_id
-	WHERE ro.cancellation IS NULL OR ro.cancellation <> 'Customer Cancelled'
+	WHERE ro.cancellation <> 'yes' OR ro.cancellation <> 'Customer Cancelled'
 	-- có sự thay dổi đặt điều kiện case when chỉ lấy những đơn hàng đã được giao
 )
 SELECT customer_id,
@@ -195,7 +196,7 @@ SELECT
 		ELSE 0
 	END )AS pizzas_count_exclusion_extras
 FROM customer_orders co INNER JOIN runner_orders ro ON co.order_id = ro.order_id
-WHERE ro.cancellation IS NULL OR  ro.cancellation <> 'Customer Cancled'
+WHERE ro.cancellation <> 'yes' OR  ro.cancellation <> 'Customer Cancled'
 
 --TASK 09: WHAT WAS THE TOTAL VOLUME OF PIZZAS ORDERED FOR EACH HOUR OF THE DAY?
 SELECT DATEPART(HOUR, CAST([order_date] AS datetime)) AS hour_of_day,
@@ -208,14 +209,71 @@ SELECT * FROM customer_orders
 --TASK 10: WHAT WAS THE VOLUME OF ORDERS FOR EACH DAY OF THE WEEK?
 SELECT co.order_id ,DATEPART (DAY, CAST([order_date] AS datetime)) AS day_of_week
 FROM customer_orders co
---GROUP BY co.order_id 
+--GROUP BY co.order_id ---task 10: chưa đúng 
 
 --------------------------------------B. RUNNER AND CUSTOMER EXPERIENCE -------------------------------------
 --TASK 01: HOW MANY RUNNERS SIGNED UP FOR EACH 1 WEEK PERIOD?
+SELECT DATEPART(WEEK, CAST([registration_date] AS datetime)) AS registration_week , 
+		count (runner_id) AS runner_signup
+FROM runners 
+GROUP BY DATEPART(WEEK, CAST([registration_date] AS datetime))
+SELECT * FROM runners;
 
 --TASK 02: WHAT WAS THE AVERAGE TIME IN MINUTES IT TOOK FOR EACH RUNNER TO ARRIVE AT THE PIZZA RUNNER HQ TO PICKUP THE ORDER?
+WITH CTE AS (
+	SELECT co.order_date, ro.pickup_time, ro.order_id, ro.runner_id,
+		DATEDIFF(MINUTE,co.order_date, ro.pickup_time) AS pickup_minues
+	FROM customer_orders co 
+	JOIN runner_orders ro ON co.order_id = ro.order_id
+	WHERE ro.cancellation <> 'yes' or ro.cancellation <> 'Customer Cancelled'
+	GROUP BY co.order_date, ro.pickup_time, ro.order_id, ro.runner_id
+)
+SELECT AVG (pickup_minues) AS avg_pickup_time_minues
+FROM CTE 
+WHERE pickup_minues > 1;
+SELECT * FROM runner_orders;
+SELECT * FROM customer_orders;
+
 --TASK 03: IS THERE ANY RELATIONSHIP BETWEEN THE NUMBER OF PIZZAS AND HOW LONG THE ORDER TAKES TO PREPARE?
---TASK 04: IS THERE ANY RELATIONSHIP BETWEEN THE NUMBER OF PIZZAS AND HOW LONG THE ORDER TAKES TO PREPARE?
+WITH CTE_MINUES_ORDER AS (
+	SELECT ro.pickup_time,co.order_id, COUNT (co.pizza_id) AS pizza_order, co.order_date AS order_time,
+			DATEDIFF(MINUTE, ro.pickup_time, co.order_date) AS pre_time_minues 
+	FROM customer_orders co join runner_orders ro on co.order_id = ro.order_id
+	WHERE ro.cancellation <> 'yes' or ro.cancellation <> 'Customer Cancelled' 
+	GROUP BY ro.pickup_time, co.order_id, co.order_date
+)
+SELECT COUNT (co.pizza_id) AS pizza_order
+	 , AVG( pre_time_minues) AS avg_pre_time_minues
+FROM CTE_MINUES_ORDER join customer_orders co on CTE_MINUES_ORDER.order_id = co.order_id 
+WHERE pre_time_minues > 1
+GROUP BY co.pizza_id ;
+
+--TASK 04: WHAT WAS THE AVERAGE DISTANCE TRAVELLED FOR EACH CUSTOMER?
+SELECT co.customer_id,ROUND( AVG(ro.distance),2) AS avg_distance 
+FROM customer_orders co JOIN runner_orders ro ON co.order_id = ro.order_id
+WHERE ro.cancellation <> 'yes' or ro.cancellation <> 'Customer Cancelled' 
+GROUP BY co.customer_id;
+SELECT * FROM customer_orders
+
 --TASK 05: WHAT WAS THE DIFFERENCE BETWEEN THE LONGEST AND SHORTEST DELIVERY TIMES FOR ALL ORDERS?
+SELECT MAX(CAST(duration AS DECIMAL(18, 2))) - MIN(CAST(duration AS DECIMAL(18, 2))) AS delivery_time_difference
+FROM runner_orders2
+WHERE duration NOT LIKE ' ';
+--note: không có cách giải
+
 --TASK 06: WHAT WAS THE AVERAGE SPEED FOR EACH RUNNER FOR EACH DELIVERY AND DO YOU NOTICE ANY TREND FOR THESE VALUES?
+SELECT ro.runner_id, ro.order_id , AVG(ro.duration) AS runner_delivery 
+FROM runner_orders ro 
+GROUP BY runner_id, order_id;
 --TASK 07: WHAT IS THE SUCCESSFUL DELIVERY PERCENTAGE FOR EACH RUNNER?
+SELECT count (runner_orders.order_id) , 
+FROM runner_orders ro
+WHERE ro.cancellation <> 'yes' or cancellation <> 'Customer Cancelled' 
+----------------------------SỬA BÀI TASK 07:---------------------------
+SELECT ro.runner_id,ROUND(100, SUM(
+	CASE 
+		WHEN ro.distance <> '0' and ro.cancellation <> 'yes' THEN 1
+		ELSE 0 END ) / COUNT(*),0)  AS delivery_successful
+
+FROM runner_orders ro
+GROUP BY ro.runner_id
