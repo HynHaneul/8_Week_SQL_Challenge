@@ -1,4 +1,4 @@
-USE MASTER 
+﻿USE MASTER 
 GO
 CREATE DATABASE FOOODIE_FI;
 GO
@@ -2719,9 +2719,52 @@ SELECT COUNT (DISTINCT sub.customer_id ) AS churned_customers ,
 FROM subscriptions sub JOIN plans ON sub.plan_id = plans.plan_id
 WHERE plans.plan_id = 4;-- FILTER RESULT TO CUSTOMERS WITH CHURN PLAN ONLY 
 
---TASK 05: HOW MANY CUSTOMERS HAVE CHURNED STRAIGHT AFTER THEIR INITIAL FREE TRIAL 
+--TASK 05: HOW MANY CUSTOMERS HAVE CHURNED STRAIGHT AFTER THEIR INITIAL FREE TRIAL?
 --WHAT PERCENTAGE IS THIS ROUNDED TO THE NEAREST WHOLE NUMBER?
+--SỬA BÀI: 
+WITH ranked_cte AS (
+SELECT sub.customer_id, plans.plan_id,
+		ROW_NUMBER() OVER(--chỉ định thứ hạng gói cho từng KH 
+		--PARTITION BY sub.customer_id
+		ORDER BY sub.start_date) AS row_num
+FROM subscriptions sub JOIN plans ON sub.plan_id = plans.plan_id
+)
+SELECT 
+	COUNT (
+	CASE	
+		WHEN row_num = 2 and plans.plan_name  = 'churn' THEN 1
+		ELSE 0 END ) AS churned_customers,
+	ROUND(100.0 * COUNT(
+    CASE 
+      WHEN row_num = 2 AND plans.plan_name = 'churn' THEN 1 
+      ELSE 0 END) / (SELECT COUNT(DISTINCT customer_id) 
+						FROM subscriptions),4) AS churn_percentage
+FROM ranked_cte, plans
+WHERE plans.plan_id = 4 AND row_num = 2; 
+
+--FILTER TO CHURN PLAN.  
+--CUSTOMERS WHO HAVE CHURNED IMMEDIATELY AFTER TRIAL HAVE CHURN PLAN RANKEDAS 2
+--CACH 02:
+WITH rank_cte AS(
+SELECT sub.customer_id, plans.plan_name, 
+		LEAD (plans.plan_name) OVER  (
+		PARTITION BY sub.customer_id
+		ORDER BY sub.start_date) AS next_plan 
+FROM subscriptions sub JOIN plans ON sub.plan_id = plans.plan_id
+)
+SELECT COUNT (customer_id) AS churned_customers,
+		ROUND (100.0 * COUNT(customer_id) / (SELECT COUNT (DISTINCT customer_id) 
+												FROM subscriptions),2) AS churn_percentage
+FROM rank_cte, plans
+WHERE  plans.plan_name = 'trial' and next_plan = 'churn';
 --TASK 06: WHAT IS THE NUMBER AND PERCENTAGE OF CUSTOMER PLANS AFTER THEIR INITIAL FREE TRIAL?
+WITH next_plans AS (
+SELECT sub.customer_id, sub.plan_id,
+						LEAD (plan_id) OVER (
+							PARTITION BY customer_id
+							ORDER BY plan_id)
+FROM subscriptions sub
+)
 --TASK 07: WHAT IS THE CUSTOMER COUNT AND PERCENTAGE BREAKDOWN OF ALL 5 PLAN_NAME VALUES AT 2020-12-31?
 --TASK 08: HOW MANY CUSTOMERS HAVE UPGRADED TO AN ANNUAL PLAN IN 2020?
 --TASK 09: HOW MANY DAYS ON AVERAGE DOES IT TAKE FOR A CUSTOMER TO UPGRADE TO AN ANNUAL PLAN FROM THE DAY THEY JOIN FOODIE_FI?
