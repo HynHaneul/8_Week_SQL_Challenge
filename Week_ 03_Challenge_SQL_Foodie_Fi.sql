@@ -2762,11 +2762,49 @@ WITH next_plans AS (
 SELECT sub.customer_id, sub.plan_id,
 						LEAD (plan_id) OVER (
 							PARTITION BY customer_id
-							ORDER BY plan_id)
+							ORDER BY plan_id) AS next_plan_id
 FROM subscriptions sub
 )
+SELECT next_plan_id AS plan_id, COUNT (sub.customer_id) AS converted_customer, 
+		ROUND (100.0 * COUNT (sub.customer_id) / (SELECT COUNT (DISTINCT sub.customer_id)
+														FROM subscriptions sub),1) AS conversion_percentage 
+FROM next_plans, subscriptions sub
+WHERE next_plan_id IS NOT NULL AND sub.plan_id = 0
+GROUP BY next_plan_id
+ORDER BY next_plan_id;
 --TASK 07: WHAT IS THE CUSTOMER COUNT AND PERCENTAGE BREAKDOWN OF ALL 5 PLAN_NAME VALUES AT 2020-12-31?
+WITH next_dates AS (
+	SELECT customer_id, plan_id, "start_date",
+			LEAD("start_date") OVER (PARTITION BY customer_id
+			ORDER BY start_date) AS next_date
+	FROM subscriptions sub
+	WHERE "start_date" <= '2020-12-31'
+)
+SELECT sub.plan_id, COUNT( DISTINCT sub.customer_id) AS customers,
+		ROUND(100.0 * COUNT (DISTINCT sub.customer_id)/ (SELECT COUNT(DISTINCT sub.customer_id)
+															FROM subscriptions sub),1)AS percentage 
+FROM next_dates, subscriptions sub
+WHERE next_date IS NULL
+GROUP BY sub.plan_id;
 --TASK 08: HOW MANY CUSTOMERS HAVE UPGRADED TO AN ANNUAL PLAN IN 2020?
+SELECT COUNT(DISTINCT customer_id) AS num_of_customers
+FROM subscriptions sub
+WHERE plan_id = 3 AND "start_date" <= '2020-12-31';
 --TASK 09: HOW MANY DAYS ON AVERAGE DOES IT TAKE FOR A CUSTOMER TO UPGRADE TO AN ANNUAL PLAN FROM THE DAY THEY JOIN FOODIE_FI?
+WITH trial_plan AS (
+	SELECT customer_id, "start_date" AS trial_date
+	FROM subscriptions sub
+	WHERE plan_id = 0
+), annual_plan AS (
+	SELECT customer_id, "start_date" AS annual_date
+	FROM subscriptions sub
+	WHERE plan_id = 3
+)
+SELECT ROUND (AVG (annual_date - trial_date),0) AS avg_days_to_upgrade
+FROM trial_plan AS trial JOIN annual_plan AS annual ON trial.customer_id = annual.customer_id
+--trial_plan CTE: Filter results to include only the customers subscribed to the trial plan.
+-- Annual_plan CTE: Filter results to only include the customers subscripbed to the pro annual plan.
+--find the average of the differences between the start date of a trial plan and a pro annual plan.
+
 --TASK 10: CAN YOU FURTHER BEAKDOWN THIS AVERAGE VALUE INTO 30 DAY PERIODS ?
 --TASK 11: HOW MANY CUSTOMERS DOWNGRADED FROM A PRO MONTLY TO A BASIC MONTHLY PLAN IN 2020?
