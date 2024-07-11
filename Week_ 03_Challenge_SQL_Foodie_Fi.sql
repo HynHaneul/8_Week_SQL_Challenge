@@ -2800,11 +2800,45 @@ WITH trial_plan AS (
 	FROM subscriptions sub
 	WHERE plan_id = 3
 )
-SELECT ROUND (AVG (annual_date - trial_date),0) AS avg_days_to_upgrade
-FROM trial_plan AS trial JOIN annual_plan AS annual ON trial.customer_id = annual.customer_id
+SELECT ROUND( AVG( DATEDIFF(day, trial.trial_date, annual.annual_date)),0) AS avg_days_to_upgrade
+FROM trial_plan AS trial JOIN annual_plan AS annual ON trial.customer_id = annual.customer_id;
 --trial_plan CTE: Filter results to include only the customers subscribed to the trial plan.
 -- Annual_plan CTE: Filter results to only include the customers subscripbed to the pro annual plan.
 --find the average of the differences between the start date of a trial plan and a pro annual plan.
 
 --TASK 10: CAN YOU FURTHER BEAKDOWN THIS AVERAGE VALUE INTO 30 DAY PERIODS ?
+----sửa bài----
+WITH trial_plan AS (
+  SELECT 
+    customer_id, 
+    start_date AS trial_date
+  FROM subscriptions
+  WHERE plan_id = 0
+), annual_plan AS (
+  SELECT 
+    customer_id, 
+    start_date AS annual_date
+  FROM subscriptions
+  WHERE plan_id = 3
+), bins AS (
+  SELECT  WIDTH_BUCKET (DATEDIFF(DAY, trial.trial_date, annual.annual_date), 0, 365, 12) AS avg_days_to_upgrade
+  FROM trial_plan AS trial JOIN annual_plan AS annual ON trial.customer_id = annual.customer_id
+)
+SELECT 
+  CONCAT((avg_days_to_upgrade - 1) * 30, ' - ', avg_days_to_upgrade * 30, ' days') AS bucket, 
+	COUNT(*) AS num_of_customers
+FROM bins
+GROUP BY avg_days_to_upgrade
+ORDER BY avg_days_to_upgrade;
 --TASK 11: HOW MANY CUSTOMERS DOWNGRADED FROM A PRO MONTLY TO A BASIC MONTHLY PLAN IN 2020?
+WITH ranked_cte AS (
+SELECT sub.customer_id, plans.plan_id, plans.plan_name,
+		LEAD(plans.plan_id) OVER (
+		PARTITION BY sub.customer_id
+		ORDER BY sub."start_date") AS next_plan_id
+FROM subscriptions AS sub JOIN plans ON sub.plan_id = plans.plan_id
+WHERE YEAR(start_date) = 2020
+)
+SELECT COUNT(customer_id) AS churned_customers
+FROM ranked_cte
+WHERE plan_id = 2 AND next_plan_id = 1; --không có đáp án 
