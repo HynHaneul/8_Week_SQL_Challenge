@@ -537,8 +537,7 @@ VALUES
   ('498', '1', '4', '2020-01-19', '2020-01-24'),
   ('499', '5', '5', '2020-01-02', '2020-01-04'),
   ('500', '2', '2', '2020-01-16', '2020-01-31');
-  GO
-
+ GO
 INSERT INTO customer_nodes (customer_id, region_id, node_id, start_date, end_date)
 VALUES
   ('1', '3', '4', '2020-01-04', '2020-01-14'),
@@ -1040,8 +1039,8 @@ VALUES
   ('497', '5', '5', '2020-02-28', '2020-03-17'),
   ('498', '1', '4', '2020-01-25', '2020-02-07'),
   ('499', '5', '4', '2020-01-05', '2020-01-15'),
-  ('500', '2', '1', '2020-02-01', '2020-02-06');GO
-
+  ('500', '2', '1', '2020-02-01', '2020-02-06');
+  GO
 INSERT INTO customer_nodes (customer_id, region_id, node_id, start_date, end_date)
 VALUES
   ('1', '3', '2', '2020-01-15', '2020-01-16'),
@@ -1543,8 +1542,8 @@ VALUES
   ('497', '5', '5', '2020-03-18', '2020-04-09'),
   ('498', '1', '1', '2020-02-08', '2020-03-04'),
   ('499', '5', '2', '2020-01-16', '2020-01-23'),
-  ('500', '2', '3', '2020-02-07', '2020-02-26');GO
-
+  ('500', '2', '3', '2020-02-07', '2020-02-26');
+  GO
 INSERT INTO customer_nodes (customer_id, region_id, node_id, start_date, end_date)
 VALUES
   ('1', '3', '5', '2020-01-17', '2020-01-28'),
@@ -2046,8 +2045,8 @@ VALUES
   ('497', '5', '5', '2020-04-10', '2020-04-14'),
   ('498', '1', '4', '2020-03-05', '2020-03-10'),
   ('499', '5', '1', '2020-01-24', '2020-01-25'),
-  ('500', '2', '2', '2020-02-27', '2020-03-12');GO
-
+  ('500', '2', '2', '2020-02-27', '2020-03-12');
+ GO
 INSERT INTO customer_nodes (customer_id, region_id, node_id, start_date, end_date)
 VALUES
   ('1', '3', '3', '2020-01-29', '2020-02-18'),
@@ -2549,7 +2548,8 @@ VALUES
   ('497', '5', '5', '2020-04-15', '2020-04-30'),
   ('498', '1', '2', '2020-03-11', '2020-03-17'),
   ('499', '5', '4', '2020-01-26', '2020-01-29'),
-  ('500', '2', '5', '2020-03-13', '2020-03-18');GO
+  ('500', '2', '5', '2020-03-13', '2020-03-18');
+GO
 
 INSERT INTO customer_nodes (customer_id, region_id, node_id, start_date, end_date)
 VALUES
@@ -3052,7 +3052,8 @@ VALUES
   ('497', '5', '2', '2020-05-01', '2020-05-26'),
   ('498', '1', '2', '2020-03-18', '2020-04-04'),
   ('499', '5', '5', '2020-01-30', '2020-02-02'),
-  ('500', '2', '2', '2020-03-19', '2020-04-14');GO
+  ('500', '2', '2', '2020-03-19', '2020-04-14');
+GO
 
 INSERT INTO customer_nodes (customer_id, region_id, node_id, start_date, end_date)
 VALUES
@@ -3555,7 +3556,8 @@ VALUES
   ('497', '5', '4', '2020-05-27', '9999-12-31'),
   ('498', '1', '2', '2020-04-05', '9999-12-31'),
   ('499', '5', '1', '2020-02-03', '9999-12-31'),
-  ('500', '2', '2', '2020-04-15', '9999-12-31');GO
+  ('500', '2', '2', '2020-04-15', '9999-12-31');
+GO
 ----- Insert new records in table -----
 INSERT INTO customer_transactions (customer_id, txn_date, txn_type, txn_amount)
 VALUES
@@ -4559,8 +4561,7 @@ VALUES
   ('69', '2020-02-25', 'deposit', '450'),
   ('69', '2020-03-13', 'purchase', '755'),
   ('69', '2020-02-22','purchase', '451');
-  GO
-
+GO
 INSERT INTO customer_transactions (customer_id, txn_date, txn_type, txn_amount)
 VALUES
   ('69', '2020-03-11', 'withdrawal', '541'),
@@ -5492,8 +5493,7 @@ VALUES
   ('416', '2020-04-04', 'purchase', '183'),
   ('416', '2020-04-03', 'deposit', '152'),
   ('320', '2020-02-23', 'purchase', '216'),
-  ('32
-0', '2020-02-23', 'purchase', '440'),
+  ('320', '2020-02-23', 'purchase', '440'),
   ('320', '2020-01-11', 'deposit', '2'),
   ('320', '2020-03-08', 'deposit', '538'),
   ('320', '2020-02-10', 'deposit', '224'),
@@ -5564,8 +5564,7 @@ VALUES
   ('367', '2020-02-08', 'withdrawal', '460'),
   ('367', '2020-02-16', 'withdrawal', '394'),
   ('367', '2020-02-17', 'deposit', '581');
-  GO
-
+GO
 INSERT INTO customer_transactions (customer_id, txn_date, txn_type, txn_amount)
 VALUES
   ('367', '2020-04-05', 'deposit', '694'),
@@ -6568,8 +6567,7 @@ VALUES
   ('58', '2020-02-28', 'purchase', '407'),
   ('58', '2020-03-22', 'purchase', '958'),
   ('58', '2020-03-17','withdrawal', '210');
-  GO
-
+GO
 INSERT INTO customer_transactions (customer_id, txn_date, txn_type, txn_amount)
 VALUES
   ('58', '2020-02-14', 'purchase', '415'),
@@ -7572,8 +7570,7 @@ VALUES
   ('211', '2020-03-17', 'deposit', '631'),
   ('211', '2020-01-24', 'purchase', '407'),
   ('211', '2020-01-24', 'deposit', '529');
-  GO
-
+GO
 INSERT INTO customer_transactions (customer_id, txn_date, txn_type, txn_amount)
 VALUES
   ('211', '2020-02-10', 'withdrawal', '244'),
@@ -8576,8 +8573,7 @@ VALUES
   ('437', '2020-01-17', 'withdrawal', '345'),
   ('437', '2020-02-11', 'withdrawal', '80'),
   ('437', '2020-02-11', 'purchase', '657');
-  GO
-
+GO
 INSERT INTO customer_transactions (customer_id, txn_date, txn_type, txn_amount)
 VALUES
   ('69', '2020-02-14', 'withdrawal', '216'),
@@ -9448,13 +9444,25 @@ VALUES
   ('189', '2020-02-06', 'purchase', '393'),
   ('189', '2020-01-22', 'deposit', '302'),
   ('189', '2020-01-27', 'withdrawal', '861');
-  GO
-
+GO
   -- A. Customer Nodes Exploration --
-  -- 1. How many unique nodes are there on the Data Bank system?
-  -- 2. What is the number of nodes per region?
-  -- 3. How many customers are allocated to each region?
-  -- 4. How many days on average are customers reallocated to a different node?
+  ----------------------------------A. CUSTOMER NODES EXPLORATION----------------------------------
+  --1. HOW MANY UNIQUE NODES ARE THERE ON THE DATA BANK SYSTEM
+  SELECT COUNT (DISTINCT node_id ) AS unique_nodes
+  FROM customer_nodes;
+
+  --2. WHAT IS THE NUMBER OF NODES PER REGION?
+  SELECT regions.region_name, COUNT(DISTINCT cn.node_id) AS node_count
+  FROM regions JOIN customer_nodes cn ON regions.region_id = cn.region_id
+  GROUP BY regions.region_name;
+
+  --3. HOW MANY CUSTOMERS ARE ALLOCATED TO EACH REGION?
+  SELECT regions.region_id,regions.region_name , COUNT ( cn.customer_id) as customer_region 
+  FROM customer_nodes cn JOIN regions ON cn.region_id = regions.region_id
+  GROUP BY regions.region_name, regions.region_id
+  ORDER BY regions.region_id;
+
+  --4. HOW  MANY DAYS ON AVERAGE ARE CUSTOMERS REALLOCATED TO A DIFFERENT NODE?
 
   -- B. Customer Transactions --
   -- 1. What is the unique count and total amount for each transaction type?

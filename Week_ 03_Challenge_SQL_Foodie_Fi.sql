@@ -1028,7 +1028,7 @@ VALUES
   ('374', '4', '2020-09-21'),
   ('375', '0', '2020-01-01');
   go
- INSERT INTO subscriptions (customer_id, plan_id, "start_date")
+INSERT INTO subscriptions (customer_id, plan_id, "start_date")
 VALUES
   ('375', '2', '2020-01-08'),
   ('375', '3', '2020-07-08'),
@@ -2683,6 +2683,7 @@ VALUES
   ('1000', '0', '2020-03-19'),
   ('1000', '2', '2020-03-26'),
   ('1000', '4', '2020-06-04');
+
 -------------------------QUESTION AND SOLUTION------------------------------
 ----------------------------A. CUSTOMER JOURNEY----------------------------
 --TASK: WRITE A BRIEF DESCRIPTION ABOUT EACH CUSTOMER'S ONBOARDING JOURNEY
@@ -2725,8 +2726,8 @@ WHERE plans.plan_id = 4;-- FILTER RESULT TO CUSTOMERS WITH CHURN PLAN ONLY
 WITH ranked_cte AS (
 SELECT sub.customer_id, plans.plan_id,
 		ROW_NUMBER() OVER(--chỉ định thứ hạng gói cho từng KH 
-		--PARTITION BY sub.customer_id
-		ORDER BY sub.start_date) AS row_num
+		PARTITION BY sub.customer_id
+		ORDER BY sub."start_date") AS row_num
 FROM subscriptions sub JOIN plans ON sub.plan_id = plans.plan_id
 )
 SELECT 
@@ -2734,7 +2735,7 @@ SELECT
 	CASE	
 		WHEN row_num = 2 and plans.plan_name  = 'churn' THEN 1
 		ELSE 0 END ) AS churned_customers,
-	ROUND(100.0 * COUNT(
+	ROUND(100 * COUNT(
     CASE 
       WHEN row_num = 2 AND plans.plan_name = 'churn' THEN 1 
       ELSE 0 END) / (SELECT COUNT(DISTINCT customer_id) 
@@ -2766,7 +2767,7 @@ SELECT sub.customer_id, sub.plan_id,
 FROM subscriptions sub
 )
 SELECT next_plan_id AS plan_id, COUNT (sub.customer_id) AS converted_customer, 
-		ROUND (100.0 * COUNT (sub.customer_id) / (SELECT COUNT (DISTINCT sub.customer_id)
+		ROUND (100 * COUNT (sub.customer_id) / (SELECT COUNT (DISTINCT sub.customer_id)
 														FROM subscriptions sub),1) AS conversion_percentage 
 FROM next_plans, subscriptions sub
 WHERE next_plan_id IS NOT NULL AND sub.plan_id = 0
@@ -2781,8 +2782,8 @@ WITH next_dates AS (
 	WHERE "start_date" <= '2020-12-31'
 )
 SELECT sub.plan_id, COUNT( DISTINCT sub.customer_id) AS customers,
-		ROUND(100.0 * COUNT (DISTINCT sub.customer_id)/ (SELECT COUNT(DISTINCT sub.customer_id)
-															FROM subscriptions sub),1)AS percentage 
+		ROUND(100 * COUNT (DISTINCT sub.customer_id)/ (SELECT COUNT(DISTINCT sub.customer_id)
+															FROM subscriptions sub),1 ) AS percentage 
 FROM next_dates, subscriptions sub
 WHERE next_date IS NULL
 GROUP BY sub.plan_id;
@@ -2842,3 +2843,84 @@ WHERE YEAR(start_date) = 2020
 SELECT COUNT(customer_id) AS churned_customers
 FROM ranked_cte
 WHERE plan_id = 2 AND next_plan_id = 1; --không có đáp án 
+-------------------------------------------------------------------------------------------------------------
+--TASK 05: HOW MANY CUSTOMERS HAVE CHURNED STRAIGHT AFTER THEIR INITIAL FREE TRIAL?
+--WHAT PERCENTAGE IS THIS ROUNDED TO THE NEAREST WHOLE NUMBER?
+WITH next_customer_cte AS (
+SELECT  sub.customer_id, plans.plan_name, 
+		LEAD(plans.plan_name) OVER (
+			PARTITION BY sub.customer_id
+			ORDER BY sub."start_date") AS next_customer
+FROM subscriptions sub JOIN plans ON sub.plan_id = plans.plan_id )
+SELECT COUNT(customer_id) AS num_of_customer, ROUND(100 * COUNT( customer_id) / (SELECT COUNT( DISTINCT sub.customer_id) 
+										FROM subscriptions sub	),1) AS customer_percentage 
+FROM next_customer_cte ,plans
+WHERE plans.plan_name = 'trial' and next_customer = 'churn'
+--TASK 06: WHAT IS THE NUMBER AND PERCENTAGE OF CUSTOMER PLANS AFTER THEIR INITIAL FREE TRIAL?
+WITH next_plans AS (
+SELECT sub.customer_id, LEAD (sub.plan_id) OVER(
+												PARTITION BY sub.customer_id
+												ORDER BY sub.plan_id) AS next_plans_id
+FROM subscriptions sub 
+)
+SELECT next_plans_id AS plans ,COUNT( sub.customer_id) AS num_of_customer, 
+		ROUND(100 * COUNT( sub.customer_id) / (SELECT COUNT( DISTINCT sub.customer_id) 
+												FROM subscriptions sub	),1) AS customer_percentage 
+FROM next_plans, subscriptions sub	
+WHERE next_plans_id IS NOT NULL and plan_id = 2
+GROUP BY next_plans_id
+ORDER BY next_plans_id;
+--TASK 07: WHAT IS THE CUSTOMER COUNT AND PERCENTAGE BREAKDOWN OF ALL 5 PLAN_NAME VALUES AT 2020-12-31?
+WITH next_time_breakdown AS (
+SELECT sub.customer_id, plan_id , LEAD(sub."start_date") OVER (
+							PARTITION BY sub.customer_id
+							ORDER BY sub."start_date") AS next_time
+FROM  subscriptions sub 
+WHERE sub."start_date" <= '2020-12-31'
+)
+SELECT sub.plan_id ,COUNT(DISTINCT sub.customer_id) AS num_of_customer, 
+		ROUND(100 * COUNT(DISTINCT sub.customer_id) / (SELECT COUNT( DISTINCT sub.customer_id) 
+												FROM subscriptions sub	),1) AS customer_percentage 
+FROM next_time_breakdown, subscriptions sub	
+WHERE next_time IS NULL
+GROUP BY sub.plan_id;
+--TASK 08: HOW MANY CUSTOMERS HAVE UPGRADED TO AN ANNUAL PLAN IN 2020?
+SELECT COUNT (DISTINCT customer_id) AS num_of_customer
+FROM subscriptions sub
+WHERE plan_id = 3 and "start_date" <= '2020-12-31'
+--TASK 09: HOW MANY DAYS ON AVERAGE DOES IT TAKE FOR A CUSTOMER TO UPGRADE TO AN ANNUAL PLAN 
+--FROM THE DAY THEY JOIN FOODIE_FI?
+WITH  trial_test AS (
+SELECT sub.customer_id ,sub."start_date" AS trial_date
+FROM subscriptions sub
+WHERE sub.plan_id = 0),
+annual_test AS(
+SELECT sub.customer_id, sub."start_date" AS annual_date
+FROM subscriptions sub
+WHERE sub.plan_id = 3)
+SELECT ROUND(AVG(DATEDIFF(DAY, trial.trial_date ,annual.annual_date)),0)  AS days_of_avertage_upgrade
+FROM trial_test trial join annual_test  annual on trial.customer_id = annual.customer_id
+---------
+--WITH trial_plan AS (
+--	SELECT customer_id, "start_date" AS trial_date
+--	FROM subscriptions sub
+--	WHERE plan_id = 0
+--), annual_plan AS (
+--	SELECT customer_id, "start_date" AS annual_date
+--	FROM subscriptions sub
+--	WHERE plan_id = 3
+--)
+--SELECT ROUND( AVG( DATEDIFF(day, trial.trial_date, annual.annual_date)),0) AS avg_days_to_upgrade
+--FROM trial_plan AS trial JOIN annual_plan AS annual ON trial.customer_id = annual.customer_id;
+
+
+
+
+
+
+
+
+
+
+
+
