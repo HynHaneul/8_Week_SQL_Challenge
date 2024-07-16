@@ -1,4 +1,4 @@
-USE MASTER
+﻿USE MASTER
 CREATE DATABASE DATA_BANK
 GO
 USE DATA_BANK
@@ -9484,15 +9484,188 @@ GO
   GROUP BY txn_type ;
 
   --2.WHAT IS THE AVERAGE TOTAL HISTORICAL DEPOSIT COUNTS AND AMOUNTS FOR ALL CUSTOMERS?
-  WITH deposit_cte AS (
-	SELECT COUNT (ct.customer_id) AS count_customer , AVG (ct.txn_amount) AS avg_mount_customer , ct.customer_id
-	FROM customer_transactions ct
-	WHERE txn_type = 'deposit'
-	GROUP BY ct.customer_id
+WITH deposit_cte AS (
+    SELECT customer_id, COUNT(customer_id) AS count_customer, AVG(txn_amount) AS avg_mount_customer
+    FROM customer_transactions
+    WHERE txn_type = 'deposit'
+    GROUP BY customer_id
 )
-SELECT ROUND(AVG (ct.txn_amount), 0) AS avg_desposit_count,
-	ROUND(AVG (count_customer), 0) AS avg_txn_count_customer 
-FROM customer_transactions ct, deposit_cte;
+SELECT 
+    ROUND(AVG(avg_mount_customer), 0) AS avg_deposit_customer,
+    ROUND(AVG(count_customer), 0) AS avg_txn_count_customer
+FROM deposit_cte;
   --3.FOR EACH MOUNT - HOW MAN DATA BANK CUSTOMERS MAKE MORE THAN 1 DEPOSIT AND EITHER 1 PURCHASE IR 1 WITH DRAWALL IN A SIGNLE MONTH?
+ WITH monthly_transactions AS  (
+	SELECT customer_id,
+			DATEPART(MONTH, txn_date) AS Month_signle, 
+			SUM (CASE WHEN txn_type = 'deposit' THEN 0 ELSE 1 END) AS deposit_count,
+			SUM (CASE WHEN txn_type = 'purchase' THEN 0 ELSE 1 END) AS purchase_count,
+			SUM (CASE WHEN txn_type = 'withdrawal' THEN 1 ELSE 0 END) AS withdrawal_count
+	FROM customer_transactions ct
+	GROUP BY customer_id, DATEPART(MONTH, txn_date) 
+ )
+ SELECT Month_signle, COUNT(DISTINCT customer_id) AS customer_count
+ FROM monthly_transactions ct
+ WHERE deposit_count > 1 AND (purchase_count >= 1 OR withdrawal_count >= 1)
+ GROUP BY Month_signle
+ ORDER BY Month_signle;
+ --4. WHATIS THE CLOSING BLANCE FOR EACH CUSTOMER AT THE END OF THE MONTH? ALSO SHOW THE CHANGE IN BALANCE EACH MONTH IN THE SAME TABLE OUTPUT.
+ --CTE 1 - To identify transaction amount as an inflow (+) or outflow (-) -- chưa sửa 
+WITH monthly_balances_cte AS (
+	SELECT customer_id, 
+			DATEADD(MONTH, DATEDIFF(MONTH, 0, txn_date) + 1, - 1) AS closing_month,
+			SUM(
+				CASE 
+					WHEN txn_type IN ('withdrawal', 'purchase') THEN - txn_amount
+					ELSE txn_amount
+				END) AS transaction_balance 
+	FROM customer_transactions
+	GROUP BY customer_id, DATEADD(MONTH, DATEDIFF (MONTH , 0, txn_date), 0)
+),
+--CTE 2: Use SEQUENCE() to generate a series of last day of the month for each customer.
+monthend_series_cte AS (
+	SELECT 
+		DISTINCT customer_id,
+		EOMONTH('2020-01-01', ROW_NUMBER() OVER(ORDER BY  (SELECT NULL)) - 1) AS ending_month 
+	FROM customer_transactions
+),
+--CTE 3: calculate total monthly change and ending balance for each month using window function SUM()
+monthly_changes_cte AS (
+SELECT 
+	monthend_series_cte.customer_id,
+	monthend_series_cte.ending_month,
+	SUM(ISNULL(monthly_balances_cte.transaction_balance, 0)) 
+	OVER(
+		PARTITION BY monthend_series_cte.customer_id, monthends_series_cte.ending_month
+		ORDER BY monthend_series_cte.ending_month
+		) AS total_monthly_change, 
+	SUM(ISNULL(monthly_balances_cte.transaction_balance, 0)) 
+	OVER(
+		PARTITION BY monthend_series_cte.customer_id
+		ORDER BY monthend_series_cte.ending_month
+		ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 
+		) AS ending_balance 
+FROM monthend_series_cte LEFT JOIN monthly_balances_cte 
+		ON monthend_series_cte.ending_month = monthly_balances_cte.closing_month
+		AND monthend_series_cte.customer_id = monthly_balances_cte.customer_id
+)
+--Final query: Display the output of customer monthly statement with the ending balances.
+SELECT customer_id, ending_month, 
+		COALESCE(total_monthly_change, 0) AS total_monthly_change, 
+		MIN(ending_balance) AS ending_balance
+FROM monthly_changes_cte
+GROUP BY customer_id,ending_month, total_monthly_change
+ORDER BY customer_id, ending_month;
+----------------------------------------------------------
+ --5. COMPARE THE CLOSING BALANCE OF A CUSTOMER'S FIRST MONTH AND THE CLOSING BALANCE FROM THEIR SECOND NTH, WHAT PERCENTAGE OF CUSTOMERS
+ --create temp table #1 customer_monthly_balances by copuing and pasting the code from the solution to Question 4
+ --CACH 1: 
+CREATE TABLE customer_monthly_balances 
+AS
+	WITH monthly_balances_cte AS (
+	SELECT 
+		customer_id, 
+		DATEADD(MONTH, DATEDIFF(MONTH, '2020-01-01', txn_date) + 1, '2020-01-01') AS closing_month,
+		SUM(
+			CASE
+				WHEN txn_type = 'withdrawal' OR txn_type = 'purchase' THEN - txn_amount
+				ELSE txn_amount END ) AS transaction_balance
+	FROM customer_transactions
+	GROUP BY customer_id, txn_date
+),
+monthend_series_cte AS (
+	SELECT 
+		DISTINCT customer_id,
+		DATEADD(MONTH, DATEDIFF(MONTH, '2020-01-01', '2020-01-31') + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1, '2020-01-01') AS ending_month
+	FROM customer_transactions
+),
+monthly_changes_cte AS (
+	SELECT 
+		monthend_series_cte.customer_id,
+		monthend_series_cte.ending_month, 
+		SUM(monthly_balances_cte.transaction_balance) 
+		OVER(
+			PARTITION BY monthend_series_cte.customer_id, monthend_series_cte.ending_month
+			ORDER BY monthend_series_cte.ending_month
+		) AS total_monthly_change,
+		SUM(monthly_balances_cte.transaction_balance) 
+		OVER(
+			PARTITION BY monthend_series_cte.customer_id
+			ORDER BY monthend_series_cte.ending_month
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+		) AS ending_balance
+	FROM monthend_series_cte LEFT JOIN monthly_balances_cte 
+		ON monthend_series_cte.ending_month = monthly_balances_cte.closing_month
+		AND monthend_series_cte.customer_id = monthly_balances_cte.customer_id
+)
+SELECT customer_id, ending_month, 
+		COALESCE(total_monthly_change, 0) AS total_monthly_change,
+		MIN(ending_balance) AS ending_balance
+FROM monthly_changes_cte
+GROUP BY customer_id, ending_month, total_monthly_change
+ORDER BY customer_id, ending_month
+--------------------------------------------------------------------------------
+--CÁCH 2: 
+SELECT 
+    customer_id, 
+    DATEADD(MONTH, DATEDIFF(MONTH, '2020-01-01', txn_date) + 1, '2020-01-01') AS closing_month,
+    SUM(
+        CASE
+            WHEN txn_type = 'withdrawal' OR txn_type = 'purchase' THEN - txn_amount
+            ELSE txn_amount END
+    ) AS transaction_balance
+INTO monthly_balances_cte
+FROM customer_transactions
+GROUP BY customer_id, txn_date;
+
+-- Tạo bảng tạm thời monthend_series_cte  
+SELECT DISTINCT
+    customer_id,
+    DATEADD(MONTH, DATEDIFF(MONTH, '2020-01-01', '2020-01-31') + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1, '2020-01-01') AS ending_month
+INTO monthend_series_cte
+FROM customer_transactions;
+
+-- Tạo bảng tạm thời monthly_changes_cte
+SELECT 
+    monthend_series_cte.customer_id,
+    monthend_series_cte.ending_month, 
+    SUM(monthly_balances_cte.transaction_balance) 
+    OVER(
+        PARTITION BY monthend_series_cte.customer_id, monthend_series_cte.ending_month
+        ORDER BY monthend_series_cte.ending_month
+    ) AS total_monthly_change,
+    SUM(monthly_balances_cte.transaction_balance) 
+    OVER(
+        PARTITION BY monthend_series_cte.customer_id
+        ORDER BY monthend_series_cte.ending_month
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS ending_balance
+INTO monthly_changes_cte
+FROM monthend_series_cte
+LEFT JOIN monthly_balances_cte 
+    ON monthend_series_cte.ending_month = monthly_balances_cte.closing_month
+    AND monthend_series_cte.customer_id = monthly_balances_cte.customer_id;
+
+-- Tạo bảng customer_monthly_balances với kết quả cuối cùng
+SELECT
+    customer_id,
+    ending_month,
+    COALESCE(total_monthly_change, 0) AS total_monthly_change,
+    MIN(ending_balance) AS ending_balance
+INTO customer_monthly_balances
+FROM monthly_changes_cte
+GROUP BY
+    customer_id,
+    ending_month,
+    total_monthly_change
+ORDER BY
+    customer_id,
+    ending_month;
+------------------------------------------------------------
+
+ --6. WHAT PERCENTAGE OF CUSTOMERS HAVE A NEGATIVE FIRST MONTH BALANCE? WHAT PERCENTAGEOF CUSTOMERS HAVE A POSITIVE FIRST MONTH BALANCE?
+ --7. WHAT PERCENTAGE OF CUSTOMERS INCREASE THEIR OPENING MONTH'S POSITIVE CLOSING BALANCE BY MORE THAN 5% IN THE FOLLOWING MONTH?
+ --8. WHAT PERCENTAGE OF CUSTOMERS REDUCE THEIR OPENING MONTH'S POSITIVE CLOSING BALANCE BY MORE THAN 5% IN THE FOLLOWING MONTH?
+ --9. WHAT PERCENTAGE OF CUSTOMERS MOVE FROM A POSITIVE BALANCE IN THE FIRST MONTH TO A NEGATIVE BALANCE IN THE SECOND MONTH?
 
 
