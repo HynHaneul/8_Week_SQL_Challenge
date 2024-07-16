@@ -9445,7 +9445,6 @@ VALUES
   ('189', '2020-01-22', 'deposit', '302'),
   ('189', '2020-01-27', 'withdrawal', '861');
 GO
-  -- A. Customer Nodes Exploration --
   ----------------------------------A. CUSTOMER NODES EXPLORATION----------------------------------
   --1. HOW MANY UNIQUE NODES ARE THERE ON THE DATA BANK SYSTEM
   SELECT COUNT (DISTINCT node_id ) AS unique_nodes
@@ -9463,8 +9462,37 @@ GO
   ORDER BY regions.region_id;
 
   --4. HOW  MANY DAYS ON AVERAGE ARE CUSTOMERS REALLOCATED TO A DIFFERENT NODE?
+ WITH node_days AS (
+ SELECT customer_id, node_id, DATEDIFF(DAY, "start_date", end_date) AS days_in_node  --end_date  - start_date 
+ FROM customer_nodes
+ WHERE end_date != '9999-12-31'
+ GROUP BY customer_id, node_id, "start_date", end_date
+  )
+  ,total_node_days AS (
+ SELECT customer_id, node_id, SUM (days_in_node) AS total_days_in_node -- SUM OF ALL DAY_NODE 
+ FROM node_days
+ GROUP BY customer_id, node_id
+  )
+  SELECT ROUND (AVG(total_days_in_node), 0) AS avg_node_reallocatied_days -- CACULLA AVG 
+  FROM total_node_days;
 
-  -- B. Customer Transactions --
-  -- 1. What is the unique count and total amount for each transaction type?
-  -- 2. What is the average total historical deposit counts and amounts for all customers?
-  -- 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+  ----------------------------------B. CUSTOMER TRANSACTIONS----------------------------------
+  --1.WHAT IS THE UNIQUE COUNT AND TOTAL AMOUNT FOR EACH TRANSACTION TYPE?
+  SELECT ct.txn_type , COUNT (DISTINCT ct.customer_id) AS customer_mount , 
+		ROUND (SUM (ct.txn_amount) ,0) AS sun_of_transaction_type 
+  FROM customer_transactions ct 
+  GROUP BY txn_type ;
+
+  --2.WHAT IS THE AVERAGE TOTAL HISTORICAL DEPOSIT COUNTS AND AMOUNTS FOR ALL CUSTOMERS?
+  WITH deposit_cte AS (
+	SELECT COUNT (ct.customer_id) AS count_customer , AVG (ct.txn_amount) AS avg_mount_customer , ct.customer_id
+	FROM customer_transactions ct
+	WHERE txn_type = 'deposit'
+	GROUP BY ct.customer_id
+)
+SELECT ROUND(AVG (ct.txn_amount), 0) AS avg_desposit_count,
+	ROUND(AVG (count_customer), 0) AS avg_txn_count_customer 
+FROM customer_transactions ct, deposit_cte;
+  --3.FOR EACH MOUNT - HOW MAN DATA BANK CUSTOMERS MAKE MORE THAN 1 DEPOSIT AND EITHER 1 PURCHASE IR 1 WITH DRAWALL IN A SIGNLE MONTH?
+
+
