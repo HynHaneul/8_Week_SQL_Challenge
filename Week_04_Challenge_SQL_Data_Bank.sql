@@ -9509,7 +9509,7 @@ FROM deposit_cte;
  WHERE deposit_count > 1 AND (purchase_count >= 1 OR withdrawal_count >= 1)
  GROUP BY Month_signle
  ORDER BY Month_signle;
- --4. WHATIS THE CLOSING BLANCE FOR EACH CUSTOMER AT THE END OF THE MONTH? ALSO SHOW THE CHANGE IN BALANCE EACH MONTH IN THE SAME TABLE OUTPUT.
+ --4. WHAT IS THE CLOSING BLANCE FOR EACH CUSTOMER AT THE END OF THE MONTH? ALSO SHOW THE CHANGE IN BALANCE EACH MONTH IN THE SAME TABLE OUTPUT.
  --CTE 1 - To identify transaction amount as an inflow (+) or outflow (-) -- chưa sửa 
 WITH monthly_balances_cte AS (
 	SELECT customer_id, 
