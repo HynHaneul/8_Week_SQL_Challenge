@@ -17282,7 +17282,7 @@ FROM clean_weekly_sales
 GROUP BY platform_bussiness
 ORDER BY platform_bussiness; 
 
---6. WHAT IS THE PERCENTAGE OF SALES FOR RETAIL WITH SHOPIFY FOR EACH MONTH?
+--6. WHAT IS THE PERCENTAGE OF SALES FOR RETAIL WITH SHOPIFY FOR EACH MONTH?---ask later 
 SELECT month_number,platform_bussiness ,
 		ROUND (100 * COUNT(DISTINCT sales) / COUNT(sales), 0)  AS percentage_sales
 FROM clean_weekly_sales
@@ -17291,19 +17291,59 @@ ORDER BY month_number,platform_bussiness;
 select * from clean_weekly_sales --- BÀI SAI 
 --BÀI SỬA--
 WITH monthly_transactions AS (
-	SELECT calendar_year, month_number, platform_bussiness,	SUM(sales) AS monthly_sales
+	SELECT calendar_year, month_number, platform_bussiness,	
+			  SUM(CAST(sales AS BIGINT)) AS monthly_sales
 	FROM clean_weekly_sales
-	GROUP BY calendar_year, month_numbrt, platform_bussiness
+	GROUP BY calendar_year, month_number, platform_bussiness
 )
 SELECT calendar_year, month_number, 
-		ROUND(100* MAX
+		ROUND(100 * MAX
 			(CASE
-				WHEN platform = 'Retail' THEN monthly_sales ELSE NULL END)
-			/ SUM 
-								
+				WHEN platform_bussiness = 'Retail' THEN monthly_sales ELSE NULL END)
+			/ SUM (calendar_year),2) AS couples_percentage,
+		ROUND (100 * MAX 
+			(CASE
+				WHEN platform_bussiness = 'shopify' THEN monthly_sales ELSE NULL END)
+			/ SUM(month_number),2) AS shopify_percentage 
+FROM monthly_transactions
+GROUP BY calendar_year, month_number
+ORDER BY calendar_year, month_number;
 
-
---7. WHAT IS THE PERCENTAGE OF SALES BY DEMOGRAPHIC FOR EACH YEAR IN THE DATASET?
+--7. WHAT IS THE PERCENTAGE OF SALES BY DEMOGRAPHIC FOR EACH YEAR IN THE DATASET?--ask later
+WITH sales_year AS (
+	SELECT calendar_year, demographic, 
+			SUM(CAST (sale AS BIGINT)) AS yearly_sales
+	FROM clean_weekly_sales
+	GROUP BY calendar_year, demographic
+)
+SELECT calendar_year, demographic,
+		ROUND(100 * (COUNT demographic) / SUM(canlendar_year)),2) AS demographic_percentage
+FROM sales_year
+GROUP BY calendar_year, month_number
+ORDER BY calendar_year, month_number;--BÀI SAI--
+--BÀI SỬA---
+WITH demographic_sales AS (
+	SELECT calendar_year, demographic, SUM(CAST(sales AS BIGINT)) AS yearly_sales
+	FROM clean_weekly_sales
+	GROUP BY calendar_year, demographic
+)
+SELECT 
+  calendar_year, 
+  ROUND(100 * MAX 
+    (CASE 
+      WHEN demographic = 'Couples' THEN yearly_sales ELSE NULL END)
+    / SUM(yearly_sales),2) AS couples_percentage,
+  ROUND(100 * MAX 
+    (CASE 
+      WHEN demographic = 'Families' THEN yearly_sales ELSE NULL END)
+    / SUM(yearly_sales),2) AS families_percentage,
+  ROUND(100 * MAX 
+    (CASE 
+      WHEN demographic = 'unknown' THEN yearly_sales ELSE NULL END)
+    / SUM(yearly_sales),2) AS unknown_percentage
+FROM demographic_sales
+GROUP BY calendar_year;
+--8. WHICH AGE_BAND AND DEMOGRAPHIC VALUES CONTRIBUTE THE MOST TO RETAIL SALES?
 
 --9. CAN WE USE THE AVG_TRANSACTION COLUMN TO FIND THE AVERAGE TRANSACTION SIZE FOR EACH YEAR FOR RETAIL WITH SHOPIFY?
 --IF NOT - HOW WOULD YOU CALCULATE IT INSTEAD?
@@ -17311,3 +17351,26 @@ SELECT calendar_year, month_number,
 --1. WHAT IS THE TOTAL SALES FOR THE 4 WEEKS BEFORE AND AFTER 2020-06-15? WHAT IS THE 
 --VALUES AND PERCENTAGE OF SALES?
 --2. WHAT ABOUT THE ENTIRE 12 WEEKS BEFORE AND AFTER?
+
+----6. WHAT IS THE PERCENTAGE OF SALES FOR RETAIL WITH SHOPIFY FOR EACH MONTH?
+--TỶ LỆ DOANH THU BÁN LẺ VỚI SHOPIFY MỖI THÁNG LÀ BAO NHIÊU?
+WITH monthly_transactions AS (
+	SELECT calendar_year, month_number, platform_bussiness,	
+			  SUM(CAST(sales AS BIGINT)) AS monthly_sales
+	FROM clean_weekly_sales
+	GROUP BY calendar_year, month_number, platform_bussiness
+)
+SELECT calendar_year, month_number, 
+		ROUND(100 * MAX
+			(CASE
+				WHEN platform_bussiness = 'Retail' THEN monthly_sales ELSE NULL END)
+			/ SUM (month_number),2) AS retail_percentage,
+		ROUND (100 * MAX 
+			(CASE
+				WHEN platform_bussiness = 'shopify' THEN monthly_sales ELSE NULL END)
+			/ SUM(month_number),2) AS shopify_percentage 
+FROM monthly_transactions
+GROUP BY calendar_year, month_number
+ORDER BY calendar_year, month_number;
+---tìm tháng giao dịch---
+select * from clean_weekly_sales 
