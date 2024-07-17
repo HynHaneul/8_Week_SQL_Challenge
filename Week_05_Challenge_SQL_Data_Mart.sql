@@ -1,4 +1,4 @@
-USE MASTER
+﻿USE MASTER
 CREATE DATABASE DATA_MART
 GO
 USE DATA_MART
@@ -17248,16 +17248,66 @@ FROM weekly_sales;
 
 --B. DATA EXPLORATION--
 --1. WHAT DAY OF THE WEEK IS USED FOR EACH WEEK_DATE VALUE?
+SELECT DISTINCT(DATENAME (WEEKDAY,week_date)) AS week_day
+FROM clean_weekly_sales
+
 --2. WHAT RANGE OF WEEK NUMBERS ARE MISSING FROM THE DATASET?
+WITH week_number_cte AS (
+	SELECT ROW_NUMBER() OVER(
+		PARTITION BY week_number 
+		ORDER BY (SELECT NULL)) AS week_numbers
+	FROM clean_weekly_sales
+)
+SELECT DISTINCT sales.week_number
+FROM week_number_cte AS week_no LEFT JOIN clean_weekly_sales AS sales 
+		ON week_no.week_number = sales.week_number
+WHERE sales.week_number IS NULL;
+
 --3. HOW MANY TOTAL TRANSACTIONS WERE THERE FOR ECH YEAR IN THE DATASET?
+SELECT calendar_year, SUM( transactions) AS total_transaction
+FROM clean_weekly_sales
+GROUP BY calendar_year
+ORDER BY calendar_year;
+
 --4. WHAT IS THE TOTAL SALES FOR EACH REGION FOR EACH MONTH?
+SELECT month_number, region, SUM(sales) AS total_sales
+FROM clean_weekly_sales
+GROUP BY  month_number, region
+ORDER BY  month_number, region;
+
 --5. WHAT IS THE TOTAL COUNT OF TRANSACTIONS FOR ECH PLATFORM?
+SELECT platform_bussiness, 
+		SUM (TRANSACTIONS) AS total_Transactions
+FROM clean_weekly_sales
+GROUP BY platform_bussiness
+ORDER BY platform_bussiness; 
+
 --6. WHAT IS THE PERCENTAGE OF SALES FOR RETAIL WITH SHOPIFY FOR EACH MONTH?
+SELECT month_number,platform_bussiness ,
+		ROUND (100 * COUNT(DISTINCT sales) / COUNT(sales), 0)  AS percentage_sales
+FROM clean_weekly_sales
+GROUP BY month_number,platform_bussiness
+ORDER BY month_number,platform_bussiness;
+select * from clean_weekly_sales --- BÀI SAI 
+--BÀI SỬA--
+WITH monthly_transactions AS (
+	SELECT calendar_year, month_number, platform_bussiness,	SUM(sales) AS monthly_sales
+	FROM clean_weekly_sales
+	GROUP BY calendar_year, month_numbrt, platform_bussiness
+)
+SELECT calendar_year, month_number, 
+		ROUND(100* MAX
+			(CASE
+				WHEN platform = 'Retail' THEN monthly_sales ELSE NULL END)
+			/ SUM 
+								
+
+
 --7. WHAT IS THE PERCENTAGE OF SALES BY DEMOGRAPHIC FOR EACH YEAR IN THE DATASET?
---8. WHICH AGE_BAND AND DEMOGRAPHIC VALUES CONTRIBUTE THE MOST TO RETAIL SALES?
+
 --9. CAN WE USE THE AVG_TRANSACTION COLUMN TO FIND THE AVERAGE TRANSACTION SIZE FOR EACH YEAR FOR RETAIL WITH SHOPIFY?
 --IF NOT - HOW WOULD YOU CALCULATE IT INSTEAD?
---C. Before & After Analystis--
---1. What is the total sales for the 4 weeks before and after 2020-06-15? what is the grouwth or reduction rate in actual 
---values and percentage of sales?
---2. What about the entire 12 weeks before and after?
+--C. Before & AFTER ANALYSTIC--
+--1. WHAT IS THE TOTAL SALES FOR THE 4 WEEKS BEFORE AND AFTER 2020-06-15? WHAT IS THE 
+--VALUES AND PERCENTAGE OF SALES?
+--2. WHAT ABOUT THE ENTIRE 12 WEEKS BEFORE AND AFTER?
