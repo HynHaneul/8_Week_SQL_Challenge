@@ -17289,18 +17289,19 @@ FROM clean_weekly_sales
 GROUP BY month_number,platform_bussiness
 ORDER BY month_number,platform_bussiness;
 select * from clean_weekly_sales --- BÀI SAI 
+
 --BÀI SỬA--
 WITH monthly_transactions AS (
 	SELECT calendar_year, month_number, platform_bussiness,	
-			  SUM(CAST(sales AS BIGINT)) AS monthly_sales
+			  SUM(CAST(sales AS BIGINT)) AS monthly_sales -- tong so doanh thu ban hang 
 	FROM clean_weekly_sales
 	GROUP BY calendar_year, month_number, platform_bussiness
 )
 SELECT calendar_year, month_number, 
 		ROUND(100 * MAX
 			(CASE
-				WHEN platform_bussiness = 'Retail' THEN monthly_sales ELSE NULL END)
-			/ SUM (calendar_year),2) AS couples_percentage,
+				WHEN platform_bussiness = 'Retail' THEN monthly_sales ELSE NULL END)-- neu rentail bang flatform_bussiness xuat ra percentage 
+			/ SUM (month_number),2) AS Retail_percentage,
 		ROUND (100 * MAX 
 			(CASE
 				WHEN platform_bussiness = 'shopify' THEN monthly_sales ELSE NULL END)
@@ -17321,6 +17322,7 @@ SELECT calendar_year, demographic,
 FROM sales_year
 GROUP BY calendar_year, month_number
 ORDER BY calendar_year, month_number;--BÀI SAI--
+
 --BÀI SỬA---
 WITH demographic_sales AS (
 	SELECT calendar_year, demographic, SUM(CAST(sales AS BIGINT)) AS yearly_sales
@@ -17343,34 +17345,32 @@ SELECT
     / SUM(yearly_sales),2) AS unknown_percentage
 FROM demographic_sales
 GROUP BY calendar_year;
+
 --8. WHICH AGE_BAND AND DEMOGRAPHIC VALUES CONTRIBUTE THE MOST TO RETAIL SALES?
+SELECT age_band, demographic, 
+		SUM(sales) AS retail_sales,
+		ROUND(100.0 * SUM(CAST(sales AS BIGINT)) 
+		/ SUM(SUM(CAST(sales AS BIGINT))) OVER(), 1) AS contribution_percentage
+FROM clean_weekly_sales
+WHERE platform_bussiness = 'Retail'
+GROUP BY age_band, demographic
+ORDER BY retail_sales DESC;
 
 --9. CAN WE USE THE AVG_TRANSACTION COLUMN TO FIND THE AVERAGE TRANSACTION SIZE FOR EACH YEAR FOR RETAIL WITH SHOPIFY?
 --IF NOT - HOW WOULD YOU CALCULATE IT INSTEAD?
+SELECT calendar_year, platform_bussiness, 
+		ROUND(AVG(avg_transaction), 0) AS avg_transasction_row,
+		SUM(sales) / SUM(transactions) AS avg_transaction_group
+FROM clean_weekly_sales
+GROUP BY calendar_year, platform_bussiness
+ORDER BY calendar_year, platform_bussiness;
+
 --C. Before & AFTER ANALYSTIC--
 --1. WHAT IS THE TOTAL SALES FOR THE 4 WEEKS BEFORE AND AFTER 2020-06-15? WHAT IS THE 
 --VALUES AND PERCENTAGE OF SALES?
 --2. WHAT ABOUT THE ENTIRE 12 WEEKS BEFORE AND AFTER?
 
-----6. WHAT IS THE PERCENTAGE OF SALES FOR RETAIL WITH SHOPIFY FOR EACH MONTH?
---TỶ LỆ DOANH THU BÁN LẺ VỚI SHOPIFY MỖI THÁNG LÀ BAO NHIÊU?
-WITH monthly_transactions AS (
-	SELECT calendar_year, month_number, platform_bussiness,	
-			  SUM(CAST(sales AS BIGINT)) AS monthly_sales
-	FROM clean_weekly_sales
-	GROUP BY calendar_year, month_number, platform_bussiness
-)
-SELECT calendar_year, month_number, 
-		ROUND(100 * MAX
-			(CASE
-				WHEN platform_bussiness = 'Retail' THEN monthly_sales ELSE NULL END)
-			/ SUM (month_number),2) AS retail_percentage,
-		ROUND (100 * MAX 
-			(CASE
-				WHEN platform_bussiness = 'shopify' THEN monthly_sales ELSE NULL END)
-			/ SUM(month_number),2) AS shopify_percentage 
-FROM monthly_transactions
-GROUP BY calendar_year, month_number
-ORDER BY calendar_year, month_number;
----tìm tháng giao dịch---
-select * from clean_weekly_sales 
+--8. WHICH AGE_BAND AND DEMOGRAPHIC VALUES CONTRIBUTE THE MOST TO RETAIL SALES?--
+--số 8. GIÁ TRỊ AGE_BAND VÀ NHÂN KHẨU NÀO ĐÓNG GÓP NHIỀU NHẤT CHO DOANH THU BÁN LẺ?--
+SELECT age_band, demographic, 
+		
