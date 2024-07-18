@@ -17222,7 +17222,7 @@ VALUES
   ('26/3/18', 'AFRICA', 'Retail', 'C3', 'Existing', '218516', '12083475');
 GO
 --A. DATA CLEANSING STEPS--
-DROP TABLE IF EXISTS clean_weekly_sales;
+DROP TABLE IF EXISTS #clean_weekly_sales;
 
 SELECT CONVERT(date,week_date,3) as week_date,
         DATEPART(WEEK,CONVERT(date,week_date,3)) as week_number, 
@@ -17245,47 +17245,87 @@ SELECT CONVERT(date,week_date,3) as week_date,
         CAST (CAST (sales AS FLOAT)/transactions AS DECIMAL (10,2)) AS avg_transaction 
 INTO clean_weekly_sales
 FROM weekly_sales;
+-----
+CREATE TABLE #clean_weekly_sales (
+    week_date DATE,
+    week_number INT,
+    month_number INT,
+    calendar_year INT,
+    region NVARCHAR(50),
+    platform_bussiness NVARCHAR(50),
+    segment NVARCHAR(50),
+    age_band NVARCHAR(50),
+    demographic NVARCHAR(50),
+    transactions INT,
+    avg_transaction DECIMAL(10, 2),
+    sales DECIMAL(18, 2)
+);
+go
+INSERT INTO #clean_weekly_sales (week_date, week_number, month_number, calendar_year, region, platform_bussiness, segment, age_band, demographic, transactions, avg_transaction, sales)
+SELECT
+    CONVERT(DATE, week_date, 3) AS week_date,
+    DATEPART(WEEK, CONVERT(DATE, week_date, 3)) AS week_number,
+    DATEPART(MONTH, CONVERT(DATE, week_date, 3)) AS month_number,
+    DATEPART(YEAR, CONVERT(DATE, week_date, 3)) AS calendar_year,
+    region,
+    platform_bussiness,
+    segment,
+    CASE
+        WHEN RIGHT(segment, 1) = '1' THEN 'Young Adults'
+        WHEN RIGHT(segment, 1) = '2' THEN 'Middle Aged'
+        WHEN RIGHT(segment, 1) IN ('3', '4') THEN 'Retirees'
+        ELSE 'unknown'
+    END AS age_band,
+    CASE
+        WHEN LEFT(segment, 1) = 'C' THEN 'Couples'
+        WHEN LEFT(segment, 1) = 'F' THEN 'Families'
+        ELSE 'unknown'
+    END AS demographic,
+    transactions,
+    ROUND(sales / transactions, 2) AS avg_transaction,
+    sales
+FROM weekly_sales;
 
 --B. DATA EXPLORATION--
 --1. WHAT DAY OF THE WEEK IS USED FOR EACH WEEK_DATE VALUE?
 SELECT DISTINCT(DATENAME (WEEKDAY,week_date)) AS week_day
-FROM clean_weekly_sales
+FROM #clean_weekly_sales
 
 --2. WHAT RANGE OF WEEK NUMBERS ARE MISSING FROM THE DATASET?
 WITH week_number_cte AS (
 	SELECT ROW_NUMBER() OVER(
 		PARTITION BY week_number 
 		ORDER BY (SELECT NULL)) AS week_numbers
-	FROM clean_weekly_sales
+	FROM #clean_weekly_sales
 )
 SELECT DISTINCT sales.week_number
-FROM week_number_cte AS week_no LEFT JOIN clean_weekly_sales AS sales 
+FROM week_number_cte AS week_no LEFT JOIN #clean_weekly_sales AS sales 
 		ON week_no.week_number = sales.week_number
 WHERE sales.week_number IS NULL;
 
 --3. HOW MANY TOTAL TRANSACTIONS WERE THERE FOR ECH YEAR IN THE DATASET?
 SELECT calendar_year, SUM( transactions) AS total_transaction
-FROM clean_weekly_sales
+FROM #clean_weekly_sales
 GROUP BY calendar_year
 ORDER BY calendar_year;
 
 --4. WHAT IS THE TOTAL SALES FOR EACH REGION FOR EACH MONTH?
 SELECT month_number, region, SUM(sales) AS total_sales
-FROM clean_weekly_sales
+FROM #clean_weekly_sales
 GROUP BY  month_number, region
 ORDER BY  month_number, region;
 
 --5. WHAT IS THE TOTAL COUNT OF TRANSACTIONS FOR ECH PLATFORM?
 SELECT platform_bussiness, 
 		SUM (TRANSACTIONS) AS total_Transactions
-FROM clean_weekly_sales
+FROM #clean_weekly_sales
 GROUP BY platform_bussiness
 ORDER BY platform_bussiness; 
 
 --6. WHAT IS THE PERCENTAGE OF SALES FOR RETAIL WITH SHOPIFY FOR EACH MONTH?---ask later 
 SELECT month_number,platform_bussiness ,
 		ROUND (100 * COUNT(DISTINCT sales) / COUNT(sales), 0)  AS percentage_sales
-FROM clean_weekly_sales
+FROM #clean_weekly_sales
 GROUP BY month_number,platform_bussiness
 ORDER BY month_number,platform_bussiness;
 select * from clean_weekly_sales --- BÀI SAI 
@@ -17294,7 +17334,7 @@ select * from clean_weekly_sales --- BÀI SAI
 WITH monthly_transactions AS (
 	SELECT calendar_year, month_number, platform_bussiness,	
 			  SUM(CAST(sales AS BIGINT)) AS monthly_sales -- tong so doanh thu ban hang 
-	FROM clean_weekly_sales
+	FROM #clean_weekly_sales
 	GROUP BY calendar_year, month_number, platform_bussiness
 )
 SELECT calendar_year, month_number, 
@@ -17314,7 +17354,7 @@ ORDER BY calendar_year, month_number;
 WITH sales_year AS (
 	SELECT calendar_year, demographic, 
 			SUM(CAST (sale AS BIGINT)) AS yearly_sales
-	FROM clean_weekly_sales
+	FROM #clean_weekly_sales
 	GROUP BY calendar_year, demographic
 )
 SELECT calendar_year, demographic,
@@ -17326,7 +17366,7 @@ ORDER BY calendar_year, month_number;--BÀI SAI--
 --BÀI SỬA---
 WITH demographic_sales AS (
 	SELECT calendar_year, demographic, SUM(CAST(sales AS BIGINT)) AS yearly_sales
-	FROM clean_weekly_sales
+	FROM #clean_weekly_sales
 	GROUP BY calendar_year, demographic
 )
 SELECT 
@@ -17349,9 +17389,8 @@ GROUP BY calendar_year;
 --8. WHICH AGE_BAND AND DEMOGRAPHIC VALUES CONTRIBUTE THE MOST TO RETAIL SALES?
 SELECT age_band, demographic, 
 		SUM(sales) AS retail_sales,
-		ROUND(100.0 * SUM(CAST(sales AS BIGINT)) 
-		/ SUM(SUM(CAST(sales AS BIGINT))) OVER(), 1) AS contribution_percentage
-FROM clean_weekly_sales
+		ROUND(100 * SUM(CAST(sales AS DECIMAL))  / SUM(SUM(sales)) OVER (), 1) AS contribution_percentage
+FROM #clean_weekly_sales
 WHERE platform_bussiness = 'Retail'
 GROUP BY age_band, demographic
 ORDER BY retail_sales DESC;
@@ -17361,16 +17400,52 @@ ORDER BY retail_sales DESC;
 SELECT calendar_year, platform_bussiness, 
 		ROUND(AVG(avg_transaction), 0) AS avg_transasction_row,
 		SUM(sales) / SUM(transactions) AS avg_transaction_group
-FROM clean_weekly_sales
+FROM #clean_weekly_sales
 GROUP BY calendar_year, platform_bussiness
 ORDER BY calendar_year, platform_bussiness;
 
 --C. Before & AFTER ANALYSTIC--
 --1. WHAT IS THE TOTAL SALES FOR THE 4 WEEKS BEFORE AND AFTER 2020-06-15? WHAT IS THE 
 --VALUES AND PERCENTAGE OF SALES?
+	SELECT DISTINCT week_number
+	FROM #clean_weekly_sales
+	WHERE week_date = '2020-06-15' AND calendar_year = '2020';
+	--------------------
+	WITH packing_sales AS (
+		SELECT week_date, week_number,SUM(sales) AS total_sales
+		FROM #clean_weekly_sales
+		WHERE (week_number BETWEEN 21 AND 28) AND (calendar_year = 2020)
+		GROUP BY week_date, week_number
+        )
+	, before_after_changes AS (
+		SELECT SUM(CASE
+						WHEN week_number BETWEEN 21 AND 24 THEN total_sales END) AS before_packaging_sales,
+				SUM(CASE 
+						WHEN week_number BETWEEN 25 AND 28 THEN total_sales END) AS after_packaging_sales
+		FROM packing_sales
+	)
+	SELECT after_packaging_sales - before_packaging_sales AS sales_variance,
+	ROUND (100 * (after_packaging_sales - before_packaging_sales) / before_packaging_sales, 2) AS variance_percentage
+	FROM before_after_changes;
+	
 --2. WHAT ABOUT THE ENTIRE 12 WEEKS BEFORE AND AFTER?
+	WITH packaging_sales AS (
+	  SELECT week_date, week_number, SUM(sales) AS total_sales
+	  FROM #clean_weekly_sales
+	  WHERE (week_number BETWEEN 13 AND 37) AND (calendar_year = 2020)
+	  GROUP BY week_date, week_number
+	)
+,before_after_changes AS (
+  SELECT 
+    SUM(CASE 
+      WHEN week_number BETWEEN 13 AND 24 THEN total_sales END) AS before_packaging_sales,
+    SUM(CASE 
+      WHEN week_number BETWEEN 25 AND 37 THEN total_sales END) AS after_packaging_sales
+  FROM packaging_sales
+)
+SELECT after_packaging_sales - before_packaging_sales AS sales_variance, 
+	ROUND(100 * (after_packaging_sales - before_packaging_sales) / before_packaging_sales ,2) AS variance_percentage
+	FROM before_after_changes;
+--3. HOW DO THE SALE METRICS FOR THESE 2 PERIODS BEFORE AND AFTER COMPARE WITH THE PREVIOUS YEARS IN 2018 AND 2019? -- bai doc hieu
 
---8. WHICH AGE_BAND AND DEMOGRAPHIC VALUES CONTRIBUTE THE MOST TO RETAIL SALES?--
---số 8. GIÁ TRỊ AGE_BAND VÀ NHÂN KHẨU NÀO ĐÓNG GÓP NHIỀU NHẤT CHO DOANH THU BÁN LẺ?--
-SELECT age_band, demographic, 
 		
