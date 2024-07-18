@@ -34734,10 +34734,33 @@ GO
 
 --  A. Digital Analysis --
 --1. HOW MANY USERS ARE THERE?
+SELECT COUNT (DISTINCT "user_id")  AS count_of_users
+FROM users
 --2. HOW MANY COOKIES DOES EACH USER HAVE ON AVERAGE?
+WITH count_of_cookies AS (
+	SELECT "user_id", COUNT(cookie_id) AS count_of_user 
+	FROM users
+	GROUP BY "user_id"
+)
+SELECT ROUND ( AVG(count_of_user), 0) AS avg_cookie
+FROM count_of_cookies
+
 --3. WHAT IS THE UNIQUE NUMBER OF VISITS BY ALL USERS PER MONTH?
+SELECT COUNT ( DISTINCT "user_id") AS count_of_user , 
+					DATEPART(MONTH, event_time) AS per_month_user
+FROM events JOIN users ON events.cookie_id  = users.cookie_id
+GROUP BY DATEPART(MONTH, event_time)
+ORDER BY per_month_user asc;
 --4. WHAT IS THE NUMBER OF EVENTS FOR EACH EVENT TYPE?
+SELECT  event_name, COUNT(DISTINCT visit_id) AS count_of_events
+FROM events JOIN event_identifier ei ON events.event_type = ei.event_type
+GROUP BY event_name
+ORDER BY count_of_events ASC;
 --5. WHAT IS THE PERCENTAGE OF VISITS WHICH HAVE A PURCHASE EVENT?
+SELECT 100 * COUNT(DISTINCT e.visit_id)/
+    (SELECT COUNT(DISTINCT visit_id) FROM events) AS percentage_purchase
+FROM events AS e JOIN event_identifier AS ei ON e.event_type = ei.event_type
+WHERE ei.event_name = 'Purchase';
 --6. WHAT IS THE PERCENTAGE OF VISITS WICH VIEW THE CHECKOUT PAGE BUT DO NOT HAVE A PURCHASE EVENT?
 --7. WHAT ARE THE TOP 3 PAGES BY NUMER OF VIEWS?
 --8. WHAT IS THE NUMBER OF VIEWS AND CART ADDS FOR EACH PRODUCT CATEGORY?
