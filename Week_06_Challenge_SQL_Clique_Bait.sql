@@ -30,7 +30,7 @@ CREATE TABLE event_identifier (
 	"event_name" VARCHAR(13),
 )
 GO
-CREATE TABLE events (
+CREATE TABLE "events" (
 	"visit_id" VARCHAR(6),
 	"cookie_id" VARCHAR(6),
 	"page_id" INTEGER,
@@ -1864,7 +1864,7 @@ VALUES
   ('211', 'a26e03', '2020-02-20'),
   ('64', '87a4ba', '2020-03-18');
 GO
-INSERT INTO events ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
   ('ccf365', 'c4ca42', '1', '1', '1', '2020-02-04 19:16:09.182546'),
   ('ccf365', 'c4ca42', '2', '1', '2', '2020-02-04 19:16:17.358191'),
@@ -2868,7 +2868,7 @@ VALUES
   ('194935', '38b3ef', '10', '1', '7', '2020-02-28 10:24:34.109065');
 GO
 
-INSERT INTO events ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
 ('194935', '38b3ef', '12', '1', '8', '2020-02-28 10:25:07.118156'),
   ('194935', '38b3ef', '13', '3', '9', '2020-02-28 10:25:36.466688'),
@@ -3872,7 +3872,7 @@ VALUES
   ('721097', 'e2c0be', '4', '1', '5', '2020-02-28 19:53:03.527512');
 GO
 
-INSERT INTO events ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
 ('721097', 'e2c0be', '4', '2', '6', '2020-02-28 19:53:58.458357'),
   ('721097', 'e2c0be', '5', '1', '7', '2020-02-28 19:54:08.219677'),
@@ -4876,7 +4876,7 @@ VALUES
   ('71f6df', '577bcc', '7', '2', '6', '2020-01-21 23:00:51.440585');
 GO
 
-INSERT INTO events ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
 ('71f6df', '577bcc', '8', '1', '7', '2020-01-21 23:01:18.027038'),
   ('71f6df', '577bcc', '8', '2', '8', '2020-01-21 23:02:07.556902'),
@@ -5880,8 +5880,7 @@ VALUES
   ('55318d', 'a96b65', '3', '1', '3', '2020-02-27 18:58:44.221242');
 GO
 
-INSERT INTO events
-  (visit_id, cookie_id, page_id, event_type, sequence_number, event_time)
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
 ('55318d', 'a96b65', '4', '1', '4', '2020-02-27 18:58:51.391394'),
   ('55318d', 'a96b65', '8', '1', '5', '2020-02-27 18:59:09.711755'),
@@ -6885,8 +6884,7 @@ VALUES
   ('c540e1', '8a4289', '5', '1', '5', '2020-02-26 01:19:57.026229');
 GO
 
-INSERT INTO events
-  (visit_id, cookie_id, page_id, event_type, sequence_number, event_time)
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
 ('c540e1', '8a4289', '6', '1', '6', '2020-02-26 01:20:07.311252'),
   ('c540e1', '8a4289', '7', '1', '7', '2020-02-26 01:20:24.745691'),
@@ -7890,7 +7888,7 @@ VALUES
   ('0fbde9', 'd6e45f', '8', '1', '4', '2020-03-11 15:32:31.66111');
 GO
 
-INSERT INTO events ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
+INSERT INTO "events" ("visit_id", "cookie_id", "page_id", "event_type", "sequence_number", "event_time")
 VALUES
 ('b4e9d7', '7c7bc8', '1', '1', '1', '2020-02-14 02:26:41.90344'),
   ('b4e9d7', '7c7bc8', '4', '1', '2', '2020-02-14 02:27:30.843156'),
@@ -34732,36 +34730,69 @@ VALUES
   ('355a6a', '87a4ba', '13', '3', '19', '2020-03-18 22:45:54.984666');
 GO
 
---  A. Digital Analysis --
+-------------------------------- A. Digital Analysis --------------------------------
 --1. HOW MANY USERS ARE THERE?
-SELECT COUNT (DISTINCT "user_id")  AS count_of_users
-FROM users
---2. HOW MANY COOKIES DOES EACH USER HAVE ON AVERAGE?
-WITH count_of_cookies AS (
-	SELECT "user_id", COUNT(cookie_id) AS count_of_user 
+	SELECT COUNT (DISTINCT "user_id")  AS count_of_users
 	FROM users
-	GROUP BY "user_id"
-)
-SELECT ROUND ( AVG(count_of_user), 0) AS avg_cookie
-FROM count_of_cookies
+--2. HOW MANY COOKIES DOES EACH USER HAVE ON AVERAGE?
+	WITH count_of_cookies AS (
+		SELECT "user_id", COUNT(cookie_id) AS count_of_user 
+		FROM users
+		GROUP BY "user_id"
+	)
+	SELECT ROUND ( AVG(count_of_user), 0) AS avg_cookie
+	FROM count_of_cookies
 
 --3. WHAT IS THE UNIQUE NUMBER OF VISITS BY ALL USERS PER MONTH?
-SELECT COUNT ( DISTINCT "user_id") AS count_of_user , 
-					DATEPART(MONTH, event_time) AS per_month_user
-FROM events JOIN users ON events.cookie_id  = users.cookie_id
-GROUP BY DATEPART(MONTH, event_time)
-ORDER BY per_month_user asc;
+	SELECT COUNT ( DISTINCT "user_id") AS count_of_user , 
+						DATEPART(MONTH, event_time) AS per_month_user
+	FROM events JOIN users ON events.cookie_id  = users.cookie_id
+	GROUP BY DATEPART(MONTH, event_time)
+	ORDER BY per_month_user asc;
 --4. WHAT IS THE NUMBER OF EVENTS FOR EACH EVENT TYPE?
-SELECT  event_name, COUNT(DISTINCT visit_id) AS count_of_events
-FROM events JOIN event_identifier ei ON events.event_type = ei.event_type
-GROUP BY event_name
-ORDER BY count_of_events ASC;
+	SELECT  event_name, COUNT(DISTINCT visit_id) AS count_of_events
+	FROM events JOIN event_identifier ei ON events.event_type = ei.event_type
+	GROUP BY event_name
+	ORDER BY count_of_events ASC;
 --5. WHAT IS THE PERCENTAGE OF VISITS WHICH HAVE A PURCHASE EVENT?
-SELECT 100 * COUNT(DISTINCT e.visit_id)/
-    (SELECT COUNT(DISTINCT visit_id) FROM events) AS percentage_purchase
-FROM events AS e JOIN event_identifier AS ei ON e.event_type = ei.event_type
-WHERE ei.event_name = 'Purchase';
---6. WHAT IS THE PERCENTAGE OF VISITS WICH VIEW THE CHECKOUT PAGE BUT DO NOT HAVE A PURCHASE EVENT?
+	SELECT 100 * COUNT(DISTINCT e.visit_id)/
+		(SELECT COUNT(DISTINCT visit_id) FROM events) AS percentage_purchase
+	FROM events AS e JOIN event_identifier AS ei ON e.event_type = ei.event_type
+	WHERE ei.event_name = 'Purchase';
+--6. WHAT IS THE PERCENTAGE OF VISITS WICH VIEW THE CHECKOUT PAGE BUT DO NOT HAVE A PURCHASE EVENT?---REVIEW CHECK 
+	WITH checkout_purchase AS (
+    SELECT 
+        visit_id,
+        MAX(CASE WHEN event_type = 1 AND page_id = 12 THEN 1 ELSE 0 END) AS checkout,
+        MAX(CASE WHEN event_type = 3 THEN 1 ELSE 0 END) AS purchase
+    FROM "events"
+    GROUP BY visit_id
+	)
+	SELECT ROUND (100 * (1-(SUM(purchase) * 1.0 / SUM(checkout))), 2) AS percentage_checkout_view_with_no_purchase 
+	FROM checkout_purchase;
+	
 --7. WHAT ARE THE TOP 3 PAGES BY NUMER OF VIEWS?
+	SELECT TOP 3 ph.page_name, count (*) AS page_views
+	FROM "events" AS e JOIN page_hierarchy as ph ON e.page_id  = ph.page_id
+	WHERE event_type = 1
+	GROUP BY page_name
+	ORDER BY page_number DESC
+	select * from "events"
+	select * from page_hierarchy;
+	select * from event_identifier;
+	SELECT * FROM campaign_identifier;
 --8. WHAT IS THE NUMBER OF VIEWS AND CART ADDS FOR EACH PRODUCT CATEGORY?
+	SELECT product_category, 
+			SUM(CASE WHEN e.event_type = 1 THEN 1 ELSE 0 END) AS page_views,
+			SUM(CASE WHEN e.event_type = 2 THEN 1 ELSE 0 END) AS add_to_cart
+	FROM "events" AS e JOIN page_hierarchy AS ph ON e.page_id = ph.page_id
+	WHERE ph.product_category IS NOT NULL
+	GROUP BY ph.product_category
+	ORDER BY page_views DESC;
+
 --9. WHAT ARE THE TOP 3 PRODUCTS BU PURCHASES?
+	SELECT TOP 3 product_category, 
+			COUNT(CASE WHEN e.event_type = 3 THEN 1 ELSE 0 END) AS purchase
+	FROM "events" AS e JOIN page_hierarchy AS ph ON e.page_id = ph.page_id
+	WHERE ph.product_category IS NOT NULL
+	GROUP BY ph.product_category ;
