@@ -15276,10 +15276,6 @@ GO
 	SELECT  pd.product_name, SUM (sales.qty) AS total_quantity
 	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
 	GROUP BY pd.product_name;
-	SELECT * FROM product_prices
-	SELECT * FROM sales
-	SELECT * FROM product_details
-	SELECT * FROM product_hierarchy
 
 --2. WHAT IS THE TOTAL GENERATED REVENUE FOR ALL PRODUCTS BEFORE DISCOUNTS?
 	SELECT pd.product_name, SUM(sales.qty * sales.price) AS total_revenueBeforeDiscounts
@@ -15349,8 +15345,27 @@ GO
 	GROUP BY member;
 -----------------------------------C. PRODUCT ANALYSIS-----------------------------------
 --1. WHAT ARE THE TOP 3 PRODUCTS BY TOTAL REVENUE BEFORE DISCOUNT?
+	SELECT TOP 3 pd.product_name, SUM (sales.price * sales.qty) AS revenue  
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP By pd.product_name
+	ORDER BY revenue DESC;
 --2. WHAT IS THE TOTAL QUANTITY, REVENUE AND DISCOUNT FOR EACH SEGMENT?
+	SELECT pd.segment_id, pd.segment_name ,
+			SUM(sales.qty) AS total_quantity,
+			SUM(sales.price * sales.qty) AS total_Revenue,
+			SUM((sales.price * sales.qty) / sales.discount / 100) AS total_discount
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP By pd.segment_id ;
+
 --3. WHAT IS THE TOP SELLING PRODUCT FOR EACH SEGMENT?
+	SELECT TOP 1 pd.segment_id, SUM(qty * price)
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP By pd.segment_id ;
+
+	SELECT * FROM product_prices
+	SELECT * FROM sales
+	SELECT * FROM product_details
+	SELECT * FROM product_hierarchy
 --4. WHAT IS THE TOTAL QUANTITY, REVENUE AND DISCOUNT FOR EACH CATEGORY?
 --5. WHAT IS THE TOP SELLING PRODUCT FOR EACH CATEGORY?
 --6. WHAT IS THE PERCENTAGE SPLIT OF REVENUE BY PRODUCT FOR EACH SEGMENT?
