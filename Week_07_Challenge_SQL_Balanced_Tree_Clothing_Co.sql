@@ -15280,10 +15280,12 @@ GO
 	SELECT * FROM sales
 	SELECT * FROM product_details
 	SELECT * FROM product_hierarchy
+
 --2. WHAT IS THE TOTAL GENERATED REVENUE FOR ALL PRODUCTS BEFORE DISCOUNTS?
 	SELECT pd.product_name, SUM(sales.qty * sales.price) AS total_revenueBeforeDiscounts
 	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
 	GROUP BY pd.product_name;
+
 --3. WHAT WAS THE TOTAL DISCOUNT AMOUNT FOR ALL PRODUCTS?
 	SELECT	pd.product_name, SUM (sales.qty * sales.price * discount / 100) AS  total_discountRevenue
 	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
@@ -15292,6 +15294,7 @@ GO
 --1. HOW MANY UNIQUE TRANSACTIONS WERE THERE?
 	SELECT COUNT( DISTINCT sales.txn_id) AS unique_sales_transactions
 	FROM sales
+
 --2. WHAT IS THE AVERAGE UNIQUE PRODUCTS PURCHASED IN EACH TRANSACTION?
 	SELECT  ROUND(AVG (total_quantity),0) AS avg_unique_product_purchased
 	FROM (
@@ -15300,20 +15303,50 @@ GO
 		 FROM sales 
 		 GROUP BY sales.txn_id
 		 ) AS subquery
+
 --3. WHAT ARE THE 25TH, 50TH AND 75TH PERCENTILE VALUES FOR THE REVENUE PER TRANSACTION?
-	SELECT 
-		PERCENTILE_CONT (0.25) OVER WITHIN GROUP(ORDER BY Revenue) AS P25,
-		PERCENTILE_CONT (0.50) OVER WITHIN GROUP(ORDER BY Revenue) AS P50,
-		PERCENTILE_CONT (0.75) OVER WITHIN GROUP(ORDER BY Revenue) AS P75,
-	FROM (--tổng doanh thu trong mỗi giao dich 
-		SELECT sales.txn_id,
-			SUM(qty * price) AS Revenue
-		FROM sales 
-		GROUP BY sales.txn_id
-		) AS subquery;
+	WITH revenue_cte AS (
+	  SELECT 
+		txn_id, 
+		SUM(price * qty) AS revenue
+	  FROM sales
+	  GROUP BY txn_id
+	)
+	SELECT
+		PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY revenue) OVER() AS median_25th,
+		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY revenue) OVER() AS median_50th,
+		PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY revenue) OVER() AS median_75th
+	FROM revenue_cte;
+
 --4. WHAT IS THE AVERAGE DISCOUNT VALUES PER TRANSACTION?
+	WITH sum_of_product AS(
+		SELECT sales.txn_id, SUM(price * qty * discount / 100) AS total_product
+		FROM sales
+		GROUP BY sales.txn_id
+		)
+	SELECT  AVG(total_product) AS avg_discount
+	FROM sum_of_product 
+
 --5. WHAT IS THE PERCENTAGE SPLIT OF ALL TRANSACTIONS FOR MEMBERS AND NON-MEMBERS?
+	WITH transactions_cte AS (
+		SELECT member, COUNT(DISTINCT txn_id) AS transactions
+		FROM sales
+		GROUP BY member
+		)
+	SELECT member,transactions,
+		ROUND(100 * transactions / (SELECT SUM(transactions) FROM transactions_cte), 2) AS percentage
+	FROM transactions_cte;
+
 --6. WHAT IS THE AVERAGE REEVENUE FOR MEMBER TRANSACTIONS AND NON-MEMBER TRANSACTIONS?
+	WITH revenue_cte AS (
+	  SELECT txn_id,member,
+			SUM(price * qty) AS revenue
+	  FROM sales
+	  GROUP BY txn_id, member -- Total percential of all product 
+	)
+	SELECT member, ROUND(AVG(revenue), 2) AS avg_transaction
+	FROM revenue_cte
+	GROUP BY member;
 -----------------------------------C. PRODUCT ANALYSIS-----------------------------------
 --1. WHAT ARE THE TOP 3 PRODUCTS BY TOTAL REVENUE BEFORE DISCOUNT?
 --2. WHAT IS THE TOTAL QUANTITY, REVENUE AND DISCOUNT FOR EACH SEGMENT?
