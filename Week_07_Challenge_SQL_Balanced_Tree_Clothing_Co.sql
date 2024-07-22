@@ -1,4 +1,4 @@
-USE MASTER
+﻿USE MASTER
 GO
 CREATE DATABASE BALANCED_TREE_CLOTHING_CO
 GO
@@ -15273,12 +15273,44 @@ GO
 
 -----------------------------------A. HIGHT LEVEL SALES ANALYSIS-----------------------------------
 --1. WHAT WAS THE TOTAL QUANTITY SOLD FOR ALL PRODUCTS?
+	SELECT  pd.product_name, SUM (sales.qty) AS total_quantity
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP BY pd.product_name;
+	SELECT * FROM product_prices
+	SELECT * FROM sales
+	SELECT * FROM product_details
+	SELECT * FROM product_hierarchy
 --2. WHAT IS THE TOTAL GENERATED REVENUE FOR ALL PRODUCTS BEFORE DISCOUNTS?
+	SELECT pd.product_name, SUM(sales.qty * sales.price) AS total_revenueBeforeDiscounts
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP BY pd.product_name;
 --3. WHAT WAS THE TOTAL DISCOUNT AMOUNT FOR ALL PRODUCTS?
+	SELECT	pd.product_name, SUM (sales.qty * sales.price * discount / 100) AS  total_discountRevenue
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP BY pd.product_name;
 -----------------------------------B. TRANSACTION ANALYSIS-----------------------------------
 --1. HOW MANY UNIQUE TRANSACTIONS WERE THERE?
+	SELECT COUNT( DISTINCT sales.txn_id) AS unique_sales_transactions
+	FROM sales
 --2. WHAT IS THE AVERAGE UNIQUE PRODUCTS PURCHASED IN EACH TRANSACTION?
---3. WHAT ARE THE 25TH, 50TH AND 75TH PERCENTAGE VALUES FOR THR REVENUE PER TRANSACTION?
+	SELECT  ROUND(AVG (total_quantity),0) AS avg_unique_product_purchased
+	FROM (
+		 SELECT sales.txn_id,
+		 SUM( DISTINCT sales.qty) AS total_quantity 
+		 FROM sales 
+		 GROUP BY sales.txn_id
+		 ) AS subquery
+--3. WHAT ARE THE 25TH, 50TH AND 75TH PERCENTILE VALUES FOR THE REVENUE PER TRANSACTION?
+	SELECT 
+		PERCENTILE_CONT (0.25) OVER WITHIN GROUP(ORDER BY Revenue) AS P25,
+		PERCENTILE_CONT (0.50) OVER WITHIN GROUP(ORDER BY Revenue) AS P50,
+		PERCENTILE_CONT (0.75) OVER WITHIN GROUP(ORDER BY Revenue) AS P75,
+	FROM (--tổng doanh thu trong mỗi giao dich 
+		SELECT sales.txn_id,
+			SUM(qty * price) AS Revenue
+		FROM sales 
+		GROUP BY sales.txn_id
+		) AS subquery;
 --4. WHAT IS THE AVERAGE DISCOUNT VALUES PER TRANSACTION?
 --5. WHAT IS THE PERCENTAGE SPLIT OF ALL TRANSACTIONS FOR MEMBERS AND NON-MEMBERS?
 --6. WHAT IS THE AVERAGE REEVENUE FOR MEMBER TRANSACTIONS AND NON-MEMBER TRANSACTIONS?
