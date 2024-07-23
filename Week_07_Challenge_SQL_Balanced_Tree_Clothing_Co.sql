@@ -39,6 +39,7 @@ CREATE TABLE product_details(
 	style_name VARCHAR(19)
 	);
 GO
+
 	-- Insert new records in table --
 INSERT INTO product_hierarchy
   (product_hierarchy_id, parent_id, level_text, level_name)
@@ -15362,10 +15363,6 @@ GO
 	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
 	GROUP By pd.segment_id ;
 
-	SELECT * FROM product_prices
-	SELECT * FROM sales
-	SELECT * FROM product_details
-	SELECT * FROM product_hierarchy
 --4. WHAT IS THE TOTAL QUANTITY, REVENUE AND DISCOUNT FOR EACH CATEGORY?
 	SELECT pd.category_id , 
 		SUM(sales.qty) AS total_quantity, 
@@ -15388,8 +15385,59 @@ GO
 	WHERE ranking = 1;
 
 --6. WHAT IS THE PERCENTAGE SPLIT OF REVENUE BY PRODUCT FOR EACH SEGMENT?
+	WITH revenue_cte AS (
+		SELECT pd.segment_id,pd.segment_name,pd.product_id,pd.product_name,
+			SUM(sales.qty * sales.price) AS Revenue
+		FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+		GROUP BY pd.segment_id, pd.segment_name, pd.product_id, pd.product_name
+	),
+	segment_total_revenue AS (
+		SELECT segment_id, segment_name,
+			SUM(Revenue) AS TotalRevenue
+		FROM revenue_cte
+		GROUP BY segment_id, segment_name
+	)
+	SELECT r.segment_id, r.segment_name, r.product_id, r.product_name, r.Revenue, s.TotalRevenue,
+		ROUND((r.Revenue * 100.0 / s.TotalRevenue), 0) AS percentage_Revenue_by_product
+	FROM  revenue_cte r JOIN segment_total_revenue s ON r.segment_id = s.segment_id
+	ORDER BY  r.segment_id, r.product_id;
 --7. WHAT IS THE PERCENTAGE SPLIT OF REVENUE BY SEGMENT FOR EACH CATEGORY?
+	WITH Revenue_segment_cte AS (
+    SELECT pd.segment_id,pd.segment_name,pd.category_id,pd.category_name,
+        SUM(sales.qty * sales.price) AS Revenue
+    FROM sales JOIN  product_details pd ON sales.product_id = pd.product_id
+    GROUP BY pd.segment_id,pd.segment_name,pd.category_id,pd.category_name
+	),
+	Category_total_revenue AS (
+		SELECT category_id,category_name,
+			SUM(Revenue) AS TotalRevenue
+		FROM Revenue_segment_cte
+		GROUP BY category_id,category_name
+	)
+	SELECT r.segment_id,r.segment_name,r.category_id,r.category_name,r.Revenue,s.TotalRevenue,
+		ROUND((r.Revenue * 100.0 / s.TotalRevenue), 0) AS percentage_Revenue_by_product
+	FROM  Revenue_segment_cte r JOIN Category_total_revenue s ON r.category_id = s.category_id
+	ORDER BY  r.segment_id, r.category_id;
+	-----------------------------------------
+	SELECT * FROM product_prices
+	SELECT * FROM product_details
+	SELECT * FROM product_hierarchy
+	SELECT * FROM sales
 --8. WHAT IS THE PERCENTAGE SPLIT OF TOTAL REVENUE BY CATEGORY?
+	WITH Revenue_cte AS (
+    SELECT pd.category_id,pd.category_name,
+        SUM(sales.qty * sales.price) AS Revenue
+    FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+    GROUP BY pd.category_id,pd.category_name
+	),
+	Total_revenue AS (
+		SELECT SUM(Revenue) AS TotalRevenue
+		FROM Revenue_cte
+	)
+	SELECT r.category_id,r.category_name,r.Revenue,t.TotalRevenue,
+		ROUND((r.Revenue * 100.0 / t.TotalRevenue), 0) AS percentage_Revenue_by_category
+	FROM  Revenue_cte r, Total_revenue t
+	ORDER BY  r.category_id;
 --9. WHAT IS THE TOTAL TRANSACTION "PENETRATION" FOR EACH PRODUCT?
 --(HIN: PENETRATION = NUMBER OF TRANSACTIONS WHERE AT LEAST 1 QUANTITY OF A PRODUCT WAS PURCHASED DIVIDED BY TOTAL NUMBER OF TRANSACTIONS)
 --10. WHAT IS THE MOST COMMON COMBINATION OF AT LEAST 1 QUANTITY OF ANY 3 PRODUCTS IN A SINGLE TRANSACTION?
