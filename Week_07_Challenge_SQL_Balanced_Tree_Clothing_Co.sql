@@ -15353,7 +15353,7 @@ GO
 	SELECT pd.segment_id, pd.segment_name ,
 			SUM(sales.qty) AS total_quantity,
 			SUM(sales.price * sales.qty) AS total_Revenue,
-			SUM((sales.price * sales.qty) / sales.discount / 100) AS total_discount
+			SUM((sales.price * sales.qty) * sales.discount / 100) AS total_discount
 	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
 	GROUP By pd.segment_id ;
 
@@ -15367,7 +15367,26 @@ GO
 	SELECT * FROM product_details
 	SELECT * FROM product_hierarchy
 --4. WHAT IS THE TOTAL QUANTITY, REVENUE AND DISCOUNT FOR EACH CATEGORY?
+	SELECT pd.category_id , 
+		SUM(sales.qty) AS total_quantity, 
+		SUM(sales.qty  * sales.price) AS total_Revenue , 
+		SUM((sales.qty * sales.price) * sales.discount /100) AS total_discount
+	FROM product_details pd JOIN sales ON pd.product_id = sales.product_id
+	GROUP BY pd.category_id
 --5. WHAT IS THE TOP SELLING PRODUCT FOR EACH CATEGORY?
+	WITH top_selling_cte AS (
+	SELECT pd.category_id, pd.category_name, pd.product_id, pd.product_name,
+			SUM(sales.qty) AS total_quantity,
+			RANK() OVER (
+				PARTITION BY pd.category_id
+				ORDER BY SUM(sales.qty) DESC )  AS ranking
+	FROM sales JOIN product_details pd ON sales.product_id = pd.product_id
+	GROUP BY pd.category_id, pd.category_name, pd.product_id, pd.product_name
+	)
+	SELECT category_id, category_name, product_id, product_name,total_quantity
+	FROM top_selling_cte
+	WHERE ranking = 1;
+
 --6. WHAT IS THE PERCENTAGE SPLIT OF REVENUE BY PRODUCT FOR EACH SEGMENT?
 --7. WHAT IS THE PERCENTAGE SPLIT OF REVENUE BY SEGMENT FOR EACH CATEGORY?
 --8. WHAT IS THE PERCENTAGE SPLIT OF TOTAL REVENUE BY CATEGORY?
