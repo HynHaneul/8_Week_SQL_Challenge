@@ -15438,7 +15438,24 @@ GO
 		ROUND((r.Revenue * 100.0 / t.TotalRevenue), 0) AS percentage_Revenue_by_category
 	FROM  Revenue_cte r, Total_revenue t
 	ORDER BY  r.category_id;
---9. WHAT IS THE TOTAL TRANSACTION "PENETRATION" FOR EACH PRODUCT?
+--9. WHAT IS THE TOTAL TRANSACTION "PENETRATION" FOR EACH PRODUCT?--solve questions 9 and 10.
 --(HIN: PENETRATION = NUMBER OF TRANSACTIONS WHERE AT LEAST 1 QUANTITY OF A PRODUCT WAS PURCHASED DIVIDED BY TOTAL NUMBER OF TRANSACTIONS)
---10. WHAT IS THE MOST COMMON COMBINATION OF AT LEAST 1 QUANTITY OF ANY 3 PRODUCTS IN A SINGLE TRANSACTION?
 
+--10. WHAT IS THE MOST COMMON COMBINATION OF AT LEAST 1 QUANTITY OF ANY 3 PRODUCTS IN A SINGLE TRANSACTION?
+--SỰ KẾT HỢP PHỔ BIẾN NHẤT CỦA ÍT NHẤT 1 SỐ LƯỢNG CỦA BẤT KỲ 3 SẢN PHẨM TRONG MỘT GIAO DỊCH ĐƠN LẺ 
+	WITH cte AS (
+		SELECT txn_id, string_agg(product_id, ',') AS product_ids
+		FROM sales
+		GROUP BY txn_id
+	)
+	SELECT TOP 1 combo , COUNT(*) AS combo_count
+	FROM (
+		SELECT txn_id, CONCAT(p1,product_id, ',', p2.product_id, ',', p3.product_id) AS combo
+		FROM cte
+		CROSS APPLY (SELECT product_id FROM STRING_SPLIT(product_ids, ',')) AS p1
+		CROSS APPLY (SELECT product_id FROM STRING_SPLIT (product_ids, ',')) AS p2
+		CROSS APPLY (SELECT product_id FROM STRING_SPLIT (product_ids,',')) AS p3
+		WHERE p1.product_id < p2.product_id  AND p2.product_id < p3.product_id
+	)	AS combinations
+	GROUP BY combo
+	ORDER BY combo_count DESC;
