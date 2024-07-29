@@ -15720,8 +15720,41 @@ VALUES
 	WHERE metrics.month_year < DATEADD(MONTH, DATEDIFF(MONTH, 0, CAST(map.created_at AS DATE)), 0);
 ---------------------------------B. INTEREST ANALYSIS---------------------------------
 --TASK 01: WHICH INTERESTS HAVE BEEN PRESENT IN ALL MONTH_YEAR DATES IN OUR DATASET?
+	--FIND OUT HOW MANY UNIQUE MONTH_YEAR IN DATASET.
+	SELECT 
+		COUNT(DISTINCT month_year) AS unique_month_year_count,
+		COUNT(DISTINCT interest_id) AS unique_interest_id_count
+	FROM interest_metrics;
+	--THERE ARE 14 DISTINCT month_year DATES AND 1202 DISTINCT interest_id.
+	WITH interest_cte AS (
+	SELECT interest_id, COUNT(DISTINCT month_year) AS total_months
+	FROM interest_metrics
+	WHERE month_year IS NOT NULL
+	GROUP BY interest_id
+	)
+	SELECT	c.total_months, COUNT(DISTINCT c.interest_id) AS interest_month 
+	FROM interest_cte c
+	WHERE total_months = 14
+	GROUP BY c.total_months
+	ORDER BY COUNT DESC;
 --TASK 02: USING THIS SAME TOTAL_MONTHS MEASURE - CALCULATE THE CUMULATIVE PERCENTAGE OF ALL RECORDS STARTING AT 14 MONTHS
 --WHICH TOTAL_MONTHS VALUE PASSES THE 90% CUMULATIVE PERCENTAGE VALUE?
+	WITH cte_interest_months AS (
+	SELECT interest_id, MAX(DISTINCT month_year) AS total_months
+	FROM interest_metrics
+	WHERE interest_id IS NOT NULL
+	GROUP BY interest_id
+	),
+	cte_interest_counts AS (
+	SELECT total_months, COUNT(DISTINCT interest_id) AS interest_count
+	FROM cte_interest_months
+	GROUP BY total_months
+	)
+	SELECT total_months, interest_count, 
+		ROUND(100 * SUM (interest_count) OVER (ORDER BY total_months DESC)/
+			(SUM(INTEREST_COUNT) OVER ()),2) AS cumulative_percentage 
+	FROM cte_interest_counts;
+		--CREATE RUNNING TOTAL FIELD USING CUMULATIVE VALUES OF INTEREST COUNT
 --TASK 03: IF WE WERE TO REMOVE ALL INTEREST_ID VALUES WHICH ARE LOWER THAN THE TOTAL_MONTHS VALUE WE FOUND IN THE PREVOUS QUESTION
 --HOW MANY TOTAL DATA POINTS WOULD WE BE REMOVING?
 --TASK 05: IF WE INCLUDE ALL OF OUR INTERESTS REPARDLESS OF THEIR COUNTS -HOW MANY UNIQUE INTERESTS ARE THERE FOR EACH MONTH?
