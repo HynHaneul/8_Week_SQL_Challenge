@@ -15820,9 +15820,50 @@ VALUES
 
 ---------------------------------D. INDEX ANALYSIS---------------------------------
 --TASK 01: WHAT IS THE TOP 10 INTERESTS BY THE AVERANGE COMPOSITION FOR EACH MONTH?
+	SELECT interest_id, _month, AVG(composition)  AS avg_composition
+	FROM interest_metrics
+	GROUP BY interest_id, _month
+	ORDER BY avg_composition DESC;
 --TASK 02: FOR ALL OF THESE TOP 10 INTERESTS - WHICH INTEREST APPEARS THE MOST OFTEN?
---TASK 03: WHAT IS THE AVERAGE OF THE AVERAGE CIMPOSITION FOR THE TOP 10 INTERESTS FOR EACH MONTH?
+WITH frequency_cte AS (
+	SELECT interest_id, count(*) AS frequency
+	FROM interest_metrics
+	GROUP BY interest_id
+	)
+	SELECT TOP 10 interest_id, count(*) AS frequency
+	FROM frequency_cte
+	GROUP BY interest_id
+	ORDER BY frequency DESC;
+--TASK 03: WHAT IS THE AVERAGE OF THE AVERAGE COMPOSITION FOR THE TOP 10 INTERESTS FOR EACH MONTH?
+	SELECT TOP 10 interest_id,_month, AVG(composition) AS avg_composition
+	FROM interest_metrics
+	GROUP BY interest_id, _month
+	ORDER BY avg_composition;
 --TASK 04: WHAT IS THE 3 MONTH ROLLING AVERAGE OF THE MAX AVERAGE COMPOSITION VALUE FROM SEPTEMBER 2018 TO AUGUST 2019 AND INCLUDE THE PREVIOUS
 --TOP RANKING INTERESTS IN THE SAME OUTPUT SHOWN BELOW
---TASK 05: PROVIDE A POSSIBLE REASON WHY THE MAX AVERAGE COMPOSITION MIGHT CHANGE FROM MONTH TO MONTH? COULD IT SIGNAL SOMETHING IS NOT QUITE
---RIGHT WITH THE OVERALL BUSINESS MODEL FOR FRESH SEGMENTS?
+	WITH max_avg_composition AS (
+	SELECT month_year, MAX(composition) AS max_avg_cp
+	FROM interest_metrics
+	WHERE month_year BETWEEN '2018-09' AND '2019-08'
+	GROUP BY month_year
+	),
+	rolling_avg AS (
+	SELECT month_year, max_avg_cp,AVG(max_avg_cp) 
+										OVER (	ORDER BY month_year
+												ROWS BETWEEN 2 
+												PRECEDING AND CURRENT ROW) AS rolling_3_month_avg
+	FROM max_avg_composition
+	),
+	top_interests AS (
+	SELECT TOP 3  interest_id,COUNT(*) AS interest_count
+	FROM interest_metrics
+	WHERE month_year BETWEEN '2018-09' AND '2019-08'
+	GROUP BY interest_id
+	ORDER BY interest_count DESC
+	)
+	SELECT month_year, max_avg_cp, rolling_3_month_avg, interest_id, interest_count
+	FROM rolling_avg JOIN top_interests ON month_year BETWEEN '2018-09' AND '2019-08'
+	ORDER BY  interest_count DESC;
+	-------------------
+	SELECT *
+	FROM interest_metrics
