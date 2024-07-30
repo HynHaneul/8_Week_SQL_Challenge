@@ -15785,11 +15785,39 @@ VALUES
 
 ---------------------------------C. SEGMENT ANALYSIS---------------------------------
 --TASK 01:USING THE COMPLETE DATASET - WHICH ARE THE TOP 1- AND BOTTOM 10 INTERESTS WHICH HAVE THE LARGEST COMPOSITION VALUES IN ANY MONTH_YEAR?
---ONLY USE THE MAXIUM COMPOSITION VALUE FOR EACH INTEREST BUT YOU MUST KEEP THE CORRESPONDING MONTH_YEAR
+--ONLY USE THE MAXIUM COMPOSITION VALUE FOR EACH INTEREST BUT YOU MUST KEEP THE CORRESPONDING MONTH_YEAR?	
+	WITH RankedInterests AS (
+	SELECT interest_id, month_year, MAX(composition) AS max_composition
+	FROM interest_metrics
+	GROUP BY interest_id , month_year
+	)
+	SELECT interest_id, month_year, max_composition
+	FROM RankedInterests
+	ORDER BY max_composition DESC;
+
 --TASK 02:WHICH 5 INTERESTS HAD THE LOWEST AVERAGE RANKING VALUE?
+	SELECT TOP 5 interest_id , AVG(ranking) AS ranking 
+	FROM interest_metrics 
+	GROUP BY interest_id
+	ORDER BY ranking DESC;
+	---------------------------
+	SELECT *
+	FROM interest_metrics
+
 --TASK 03:WHICH 5 INTERESTS HAD THE LARGEST STARDARD DEVIATION IN THEIR PERCENTILE_RANKING VALUE?
+	SELECT TOP 5 interest_id, STDEV(percentile_ranking)  AS deviation_percentile_ranking
+	FROM interest_metrics
+	GROUP BY interest_id
+	ORDER BY deviation_percentile_ranking DESC;
+
 --TASK 04:FOR THE 5 INTERESTS FOUND IN THE PREVIOUS QUESTION - WHAT WAS MINIMUM AND MAXIMUM PERCENTILE_RANKING VALUE FOR WACH INTEREST AD ITS
 --CORRESPONDING YEAR_MONTH VALUE? CAN YOU DESCRIBE WHAT IS HAPPENING FOR THESE 5 INTERESTS?
+	SELECT TOP 5 interest_id, month_year,
+		MAX(percentile_ranking) as max_percentile,
+		MIN(percentile_ranking) AS min_percentile
+	FROM interest_metrics
+	GROUP BY interest_id, month_year
+
 ---------------------------------D. INDEX ANALYSIS---------------------------------
 --TASK 01: WHAT IS THE TOP 10 INTERESTS BY THE AVERANGE COMPOSITION FOR EACH MONTH?
 --TASK 02: FOR ALL OF THESE TOP 10 INTERESTS - WHICH INTEREST APPEARS THE MOST OFTEN?
